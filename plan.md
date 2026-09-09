@@ -175,9 +175,14 @@ internet-exposed via reverse proxy — this is what the *app* must own:
   artifacts (APK, Docker image) from the one repo — see §10.
 - Repo layout: `frontend/` (Vue + Vite), `backend/` (Flask + SQLite),
   `docker-compose.yml` at the root, plus `README.md`, `LICENSE`, `plan.md`.
-- **Branching model**: one feature branch per feature (`feature/<name>`),
-  branched from `dev`, PR'd back into `dev`. Once `dev` is stable/tested,
-  merge `dev` → `main`. `main` is always the deployable state.
+- **Tickets**: work is tracked as GitHub Issues on the
+  [Barcode Shopping project board](https://github.com/users/houbou98-19/projects/4)
+  (Todo / In Progress / Done). One issue = one feature or fix.
+- **Branching model**: one feature branch per ticket
+  (`feature/<issue-number>-<short-slug>`), branched from `dev`, PR'd back
+  into `dev` with `Closes #<issue-number>` so the issue auto-closes on
+  merge. Once `dev` is stable/tested, merge `dev` → `main`. `main` is
+  always the deployable state.
 - `main` is what triggers release CI/CD (below) — nothing should land there
   directly; everything flows feature branch → `dev` → `main`.
 
