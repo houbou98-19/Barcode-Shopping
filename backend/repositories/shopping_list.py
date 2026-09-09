@@ -20,7 +20,23 @@ def product_exists(conn, product_id):
     return row is not None
 
 
+def get_unchecked_by_product(conn, product_id):
+    row = conn.execute(
+        "SELECT * FROM shopping_list_items WHERE product_id = ? AND checked = 0",
+        (product_id,),
+    ).fetchone()
+    return dict(row) if row else None
+
+
 def create(conn, product_id, quantity):
+    """Merges into an existing unchecked entry for the same product (bumps
+    its quantity) instead of creating a duplicate row. A re-scan of a
+    product that's already checked off starts a fresh entry instead, since
+    that means "need to buy again", not "add more to this trip"."""
+    existing = get_unchecked_by_product(conn, product_id)
+    if existing is not None:
+        return update(conn, existing["id"], quantity=existing["quantity"] + quantity)
+
     cur = conn.execute(
         "INSERT INTO shopping_list_items (product_id, quantity) VALUES (?, ?)",
         (product_id, quantity),

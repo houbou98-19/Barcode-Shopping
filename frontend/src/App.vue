@@ -1,6 +1,9 @@
 <script setup>
 import { ref } from 'vue'
 import Scanner from './components/Scanner.vue'
+import ShoppingList from './components/ShoppingList.vue'
+
+const view = ref('scan') // 'scan' | 'list'
 
 const status = ref('idle') // idle | loading | choose | create | added | error
 const scannedBarcode = ref(null)
@@ -83,38 +86,60 @@ function scanAgain() {
   <div id="app">
     <h1>Barcode Shopping</h1>
 
-    <Scanner v-if="status === 'idle'" @scan="handleScan" />
+    <nav class="tabs">
+      <button :class="{ active: view === 'scan' }" @click="view = 'scan'">Scan</button>
+      <button :class="{ active: view === 'list' }" @click="view = 'list'">List</button>
+    </nav>
 
-    <p v-if="status === 'loading'">Working...</p>
+    <section v-if="view === 'scan'">
+      <Scanner v-if="status === 'idle'" @scan="handleScan" />
 
-    <div v-if="status === 'choose'">
-      <p>Multiple products found for barcode {{ scannedBarcode }}:</p>
-      <ul>
-        <li v-for="p in matches" :key="p.id">
-          <button @click="addToList(p.id)">
-            {{ p.name }} ({{ p.category || 'no category' }})
-          </button>
-        </li>
-      </ul>
-    </div>
+      <p v-if="status === 'loading'">Working...</p>
 
-    <div v-if="status === 'create'">
-      <p>No product found for barcode {{ scannedBarcode }}. Add it:</p>
-      <input v-model="newName" placeholder="Product name" />
-      <input v-model="newCategory" placeholder="Category (optional)" />
-      <button @click="createAndAdd">Add product &amp; add to list</button>
-    </div>
+      <div v-if="status === 'choose'">
+        <p>Multiple products found for barcode {{ scannedBarcode }}:</p>
+        <ul>
+          <li v-for="p in matches" :key="p.id">
+            <button @click="addToList(p.id)">
+              {{ p.name }} ({{ p.category || 'no category' }})
+            </button>
+          </li>
+        </ul>
+      </div>
 
-    <p v-if="status === 'added'">{{ message }}</p>
-    <p v-if="status === 'error'" class="error">{{ message }}</p>
+      <div v-if="status === 'create'">
+        <p>No product found for barcode {{ scannedBarcode }}. Add it:</p>
+        <input v-model="newName" placeholder="Product name" />
+        <input v-model="newCategory" placeholder="Category (optional)" />
+        <button @click="createAndAdd">Add product &amp; add to list</button>
+      </div>
 
-    <button v-if="status !== 'idle' && status !== 'loading'" @click="scanAgain">
-      Scan again
-    </button>
+      <p v-if="status === 'added'">{{ message }}</p>
+      <p v-if="status === 'error'" class="error">{{ message }}</p>
+
+      <button v-if="status !== 'idle' && status !== 'loading'" @click="scanAgain">
+        Scan again
+      </button>
+    </section>
+
+    <section v-if="view === 'list'">
+      <ShoppingList />
+    </section>
   </div>
 </template>
 
 <style scoped>
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.tabs button.active {
+  font-weight: bold;
+  text-decoration: underline;
+}
+
 .error {
   color: #b00020;
 }
