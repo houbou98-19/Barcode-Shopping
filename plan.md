@@ -52,11 +52,19 @@ unreliable, especially on iOS Safari. This plan addresses that directly (see §4
     the server. Gets the native `@capacitor-mlkit/barcode-scanning` plugin
     (Google ML Kit) for best-case scanning reliability. Free to build and
     sideload, no Play Store needed.
-- **iPhone**: Chrome webpage since safari doesnt natively support barcodedetecion.
+- **iPhone**: installed PWA/webpage, any browser. All iOS browsers (Chrome
+  included) are required by Apple to run on the WebKit engine, so there is
+  no real Chromium on iPhone — the native `BarcodeDetector` API (Chromium-only)
+  is unavailable there regardless of which browser app is used. To keep one
+  scanning code path across every browser/platform, the frontend uses the
+  [`barcode-detector`](https://www.npmjs.com/package/barcode-detector) ponyfill:
+  it exposes the same `BarcodeDetector` interface everywhere, using the native
+  implementation where available (desktop/Android Chrome) and a ZXing-WASM
+  decoder as a transparent fallback where it isn't (iOS).
 - Rationale recap: the original attempt's scanning reliability problem came
   from relying on inconsistent browser camera APIs across platforms. This
-  plan solves it natively where it's free and easy (Android), and mitigates
-  it where native isn't free (iOS).
+  plan solves it with a single ponyfill-backed scan path everywhere, plus a
+  native ML Kit path on Android specifically for best-case reliability there.
 
 ### 4.2 Backend
 - **Python + Flask**
@@ -88,6 +96,7 @@ unreliable, especially on iOS Safari. This plan addresses that directly (see §4
     products can legitimately share a barcode)
   - `name`
   - `category`
+  - `image_path` (nullable, unused until v3 — see v3 additions below)
   - `created_at`
 - `shopping_list_items`
   - `id` (PK)
@@ -113,10 +122,14 @@ unreliable, especially on iOS Safari. This plan addresses that directly (see §4
   - `added_by_profile_id` (FK → profiles)
 
 ### v3 additions
-- `products` gains:
-  - `image_path` (nullable) — WebP thumbnail, ~100–128px, ~2–5KB, stored on
-    disk (e.g. `/data/product-images/{barcode}.webp}`), referenced by path,
-    not stored as a DB blob.
+- `products.image_path` (nullable) added early, in the v1 schema — column
+  exists from the start (unset until the photo-capture feature ships) since
+  it's a one-line addition and avoids a later migration. The photo-capture
+  feature itself (letting a user snap a picture of an item) is still v3
+  scope: WebP thumbnail, ~100–128px, ~2–5KB, stored on disk (e.g.
+  `/data/product-images/{id}.webp`, keyed by the products.id PK since
+  barcode is not unique — see §5 v1), referenced by path, not stored as a
+  DB blob.
 - `ha_integrations`
   - `profile_id` (FK)
   - `ha_base_url`
