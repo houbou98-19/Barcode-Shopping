@@ -81,13 +81,17 @@ unreliable, especially on iOS Safari. This plan addresses that directly (see §4
 
 ### v1
 - `products`
-  - `barcode` (PK)
+  - `id` (PK)
+  - `barcode` (indexed, **not unique** — some barcode ranges, e.g. GS1
+    restricted circulation numbers used for deli/bakery/private-label
+    goods, are only unique per-store, not globally, so two distinct
+    products can legitimately share a barcode)
   - `name`
   - `category`
   - `created_at`
 - `shopping_list_items`
   - `id` (PK)
-  - `product_id` (FK → products)
+  - `product_id` (FK → `products.id`)
   - `quantity`
   - `checked` (bool)
   - `added_at`

@@ -5,8 +5,8 @@ frontend/dev-dist/
 frontend/.vite/
 
 # Backend
-backend/__pycache__/
-backend/*.pyc
+backend/**/__pycache__/
+backend/**/*.pyc
 backend/.venv/
 backend/instance/
 *.db
