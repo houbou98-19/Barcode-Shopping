@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS products (
     barcode TEXT NOT NULL,
     name TEXT NOT NULL,
     category TEXT,
+    image_path TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
