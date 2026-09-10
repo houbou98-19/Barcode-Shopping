@@ -1,10 +1,12 @@
 <script setup>
 import { ref } from 'vue'
+import { apiUrl } from './api'
 import ProductsBrowser from './components/ProductsBrowser.vue'
 import Scanner from './components/Scanner.vue'
+import Settings from './components/Settings.vue'
 import ShoppingList from './components/ShoppingList.vue'
 
-const view = ref('scan') // 'scan' | 'list' | 'products'
+const view = ref('scan') // 'scan' | 'list' | 'products' | 'settings'
 
 const status = ref('idle') // idle | loading | choose | create | added | error
 const scannedBarcode = ref(null)
@@ -18,7 +20,7 @@ async function handleScan(barcode) {
   status.value = 'loading'
   message.value = ''
   try {
-    const res = await fetch(`/api/products/barcode/${encodeURIComponent(barcode)}`)
+    const res = await fetch(apiUrl(`/api/products/barcode/${encodeURIComponent(barcode)}`))
     const products = await res.json()
     matches.value = products
     if (products.length === 0) {
@@ -37,7 +39,7 @@ async function handleScan(barcode) {
 async function addToList(productId, productName) {
   status.value = 'loading'
   try {
-    const res = await fetch('/api/list', {
+    const res = await fetch(apiUrl('/api/list'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ product_id: productId }),
@@ -55,7 +57,7 @@ async function createAndAdd() {
   if (!newName.value) return
   status.value = 'loading'
   try {
-    const res = await fetch('/api/products', {
+    const res = await fetch(apiUrl('/api/products'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -167,6 +169,10 @@ function selectView(next) {
       <section v-if="view === 'products'">
         <ProductsBrowser />
       </section>
+
+      <section v-if="view === 'settings'">
+        <Settings />
+      </section>
     </main>
 
     <nav class="tab-bar">
@@ -195,6 +201,27 @@ function selectView(next) {
           />
         </svg>
         List
+      </button>
+      <button :class="{ active: view === 'settings' }" @click="selectView('settings')">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"
+          />
+          <path
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"
+          />
+        </svg>
+        Settings
       </button>
     </nav>
   </div>

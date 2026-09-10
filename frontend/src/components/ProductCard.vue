@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue'
+import { apiUrl } from '../api'
 
 const props = defineProps({
   product: { type: Object, required: true },
@@ -12,7 +13,7 @@ const status = ref('idle') // idle | adding | added | error
 async function addToList() {
   status.value = 'adding'
   try {
-    const res = await fetch('/api/list', {
+    const res = await fetch(apiUrl('/api/list'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ product_id: props.product.id }),

@@ -162,12 +162,25 @@ Applies regardless of whether the instance sits behind a VPN or is
 internet-exposed via reverse proxy — this is what the *app* must own:
 
 - **v1**: IP-based rate limiting on write endpoints (product creation, list
-  item creation); strict CORS (only the configured frontend origin, not `*`);
-  input validation/sanitization on product name/category (length limits,
-  reject script/HTML injection) since the product table has open write with
-  no moderation; all secrets (DB path, any external API keys) via environment
-  variables, `.env.example` shipped in repo, nothing hardcoded/committed;
-  debug/docs routes disabled or gated in production builds.
+  item creation); input validation/sanitization on product name/category
+  (length limits, reject script/HTML injection) since the product table has
+  open write with no moderation; all secrets (DB path, any external API
+  keys) via environment variables, `.env.example` shipped in repo, nothing
+  hardcoded/committed; debug/docs routes disabled or gated in production
+  builds.
+- **CORS: wildcard (`Access-Control-Allow-Origin: *` on `/api/*`), not
+  restricted to a single configured origin** — revised from the original
+  single-origin plan once Settings' Server URL feature (see §4.1/§7) made
+  that assumption unworkable: the backend must be reachable from whatever
+  origin a device points at it (the native app's local pseudo-origin, a
+  browser on another device, a dev machine testing against a deployed
+  server, etc.), not one fixed frontend origin. This is an acceptable
+  tradeoff for v1 specifically because there is no cookie/session-based
+  auth yet — wildcard CORS mainly matters for protecting *credentialed*
+  cross-origin requests, and v1 has none to protect. **Revisit this when
+  v2 profile sessions ship** (see v2 below) — Bearer-token auth (not
+  cookies) means CORS still isn't the thing guarding those endpoints, but
+  it's the natural point to reassess.
 - **v2**: PIN verification with lockout (5 failed attempts → 15 min lock per
   profile); opaque session token issued on successful PIN check, sent as
   Bearer header, required on all write endpoints; sliding 30-day expiry

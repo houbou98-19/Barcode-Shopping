@@ -1,6 +1,7 @@
 import os
 
 from flask import Flask, abort, send_from_directory
+from flask_cors import CORS
 
 from db import close_db, init_db
 from routes.products import products_bp
@@ -13,6 +14,14 @@ STATIC_DIR = os.environ.get("STATIC_DIR", os.path.join(os.path.dirname(__file__)
 def create_app():
     app = Flask(__name__, static_folder=STATIC_DIR, static_url_path="")
     app.config["DATABASE_PATH"] = DB_PATH
+
+    # Any origin, not just a configured one: the app is reachable from
+    # wherever a user points Settings > Server URL (the native app's local
+    # origin, a browser on another device, etc. - see plan.md SS6). No
+    # cookie/session auth exists yet in v1, so wildcard CORS isn't giving up
+    # meaningful protection; this gets revisited once v2 profile sessions
+    # exist (issue #8).
+    CORS(app, resources={r"/api/*": {"origins": "*"}})
 
     init_db(DB_PATH)
     app.teardown_appcontext(close_db)
