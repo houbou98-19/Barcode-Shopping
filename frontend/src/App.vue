@@ -1,9 +1,10 @@
 <script setup>
 import { ref } from 'vue'
+import ProductsBrowser from './components/ProductsBrowser.vue'
 import Scanner from './components/Scanner.vue'
 import ShoppingList from './components/ShoppingList.vue'
 
-const view = ref('scan') // 'scan' | 'list'
+const view = ref('scan') // 'scan' | 'list' | 'products'
 
 const status = ref('idle') // idle | loading | choose | create | added | error
 const scannedBarcode = ref(null)
@@ -91,16 +92,18 @@ function selectView(next) {
 <template>
   <div class="app">
     <header class="app-header">
-      <svg class="logo" viewBox="0 0 24 24" aria-hidden="true">
-        <rect x="1" y="2" width="2.5" height="20" fill="currentColor" />
-        <rect x="5.5" y="2" width="1.2" height="20" fill="currentColor" />
-        <rect x="8" y="2" width="3" height="20" fill="currentColor" />
-        <rect x="12.5" y="2" width="1.2" height="20" fill="currentColor" />
-        <rect x="15" y="2" width="2" height="20" fill="currentColor" />
-        <rect x="18.5" y="2" width="1.2" height="20" fill="currentColor" />
-        <rect x="21" y="2" width="2" height="20" fill="currentColor" />
-      </svg>
-      <h1>Barcode Shopping</h1>
+      <button class="title-btn" @click="view = 'products'">
+        <svg class="logo" viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="1" y="2" width="2.5" height="20" fill="currentColor" />
+          <rect x="5.5" y="2" width="1.2" height="20" fill="currentColor" />
+          <rect x="8" y="2" width="3" height="20" fill="currentColor" />
+          <rect x="12.5" y="2" width="1.2" height="20" fill="currentColor" />
+          <rect x="15" y="2" width="2" height="20" fill="currentColor" />
+          <rect x="18.5" y="2" width="1.2" height="20" fill="currentColor" />
+          <rect x="21" y="2" width="2" height="20" fill="currentColor" />
+        </svg>
+        <h1>Barcode Shopping</h1>
+      </button>
     </header>
 
     <main class="app-main">
@@ -160,6 +163,10 @@ function selectView(next) {
       <section v-if="view === 'list'">
         <ShoppingList />
       </section>
+
+      <section v-if="view === 'products'">
+        <ProductsBrowser />
+      </section>
     </main>
 
     <nav class="tab-bar">
@@ -207,6 +214,18 @@ function selectView(next) {
   align-items: center;
   gap: 10px;
   padding: 16px;
+}
+
+.title-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+  text-align: left;
 }
 
 .logo {
