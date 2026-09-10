@@ -1,0 +1,18 @@
+services:
+  app:
+    image: ghcr.io/houbou98-19/barcode-shopping:latest
+    pull_policy: always
+    ports:
+      - "8080:5000"
+    volumes:
+      - shopping_data:/data
+    networks:
+      - barcode-shopping
+    restart: unless-stopped
+
+networks:
+  barcode-shopping:
+    driver: bridge
+
+volumes:
+  shopping_data:
