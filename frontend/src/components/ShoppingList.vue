@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { apiUrl } from '../api'
 import ProductCard from './ProductCard.vue'
 
@@ -46,8 +46,8 @@ const sortedItems = computed(() => {
   return list
 })
 
-async function load() {
-  loading.value = true
+async function load({ silent = false } = {}) {
+  if (!silent) loading.value = true
   error.value = ''
   try {
     const res = await fetch(apiUrl('/api/list'))
@@ -56,7 +56,7 @@ async function load() {
   } catch {
     error.value = 'Could not load the shopping list'
   } finally {
-    loading.value = false
+    if (!silent) loading.value = false
   }
 }
 
@@ -114,7 +114,21 @@ function openDetail(item) {
   }
 }
 
-onMounted(load)
+let eventSource = null
+
+function connectLiveUpdates() {
+  eventSource = new EventSource(apiUrl('/api/events'))
+  eventSource.onmessage = () => load({ silent: true })
+}
+
+onMounted(() => {
+  load()
+  connectLiveUpdates()
+})
+
+onUnmounted(() => {
+  eventSource?.close()
+})
 </script>
 
 <template>

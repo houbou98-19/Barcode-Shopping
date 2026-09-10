@@ -1,9 +1,10 @@
 import os
 
-from flask import Flask, abort, send_from_directory
+from flask import Flask, Response, abort, send_from_directory
 from flask_cors import CORS
 
 from db import close_db, init_db
+from events import subscribe
 from extensions import limiter
 from routes.products import products_bp
 from routes.shopping_list import shopping_list_bp
@@ -33,6 +34,13 @@ def create_app():
 
     app.register_blueprint(products_bp)
     app.register_blueprint(shopping_list_bp)
+
+    @app.get("/api/events")
+    def events():
+        """Server-Sent Events stream: pushes a small message whenever the
+        shopping list changes, so other connected clients know to refetch it
+        instead of waiting for a manual refresh."""
+        return Response(subscribe(), mimetype="text/event-stream")
 
     @app.route("/", defaults={"path": ""})
     @app.route("/<path:path>")
