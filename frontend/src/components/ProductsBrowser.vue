@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { apiUrl } from '../api'
 import ProductCard from './ProductCard.vue'
 
 const products = ref([])
@@ -12,7 +13,7 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    const res = await fetch('/api/products')
+    const res = await fetch(apiUrl('/api/products'))
     if (!res.ok) throw new Error()
     products.value = await res.json()
   } catch {
