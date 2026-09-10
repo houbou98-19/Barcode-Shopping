@@ -214,18 +214,26 @@ internet-exposed via reverse proxy — this is what the *app* must own:
 
 ## 10. CI/CD
 
-- Trigger: push/merge to `main`.
-- Two separate GitHub Actions workflows, each scoped with `paths:` filters to
-  its own directory (`frontend/**` or `backend/**` + shared root config) so a
-  backend-only change doesn't rebuild the APK and vice versa:
-  - **Android APK**: runs the Capacitor Android build and produces a signed
-    APK as a downloadable release artifact — pull it onto the phone directly,
-    no Play Store involved.
-  - **Server image**: builds and publishes a Docker image for the Flask
-    backend (+ frontend static assets it serves for the web/PWA path).
-- **Deployment target**: the published Docker image runs as a container on
-  **ZimaOS**, reverse-proxied through **Nginx Proxy Manager** (handles
-  TLS/domain routing at the infra layer — outside this app's scope per §6).
+- **Server image** (`.github/workflows/docker-publish.yml`): builds the
+  single combined Docker image (multi-stage: Vue frontend build → served as
+  static files by the Flask backend under gunicorn — see §4.3) and pushes it
+  to GHCR on **every push, to any branch** — not just `main`. Always tagged
+  `:latest` (whatever was built most recently, regardless of branch) plus
+  the commit SHA (for pinning/rollback to a specific build). This
+  intentionally does not follow the feature-branch → `dev` → `main` gate:
+  `:latest` is a moving "most recent build" tag for convenience, not a
+  stability guarantee — pin a SHA tag manually for anything that needs to
+  stay put.
+  - Android APK build is a separate, not-yet-built workflow (see §8
+    roadmap / issue #9) — no `paths:` filtering between the two, since they
+    build independently regardless.
+- **Deployment target**: `docker-compose.yml` runs the image as a container
+  on **ZimaOS**, `pull_policy: always` so a normal `docker compose pull &&
+  up -d` (not a bare restart, which reuses the cached image) always grabs
+  whatever `:latest` currently is. Reverse-proxied through **Nginx Proxy
+  Manager** (handles TLS/domain routing at the infra layer — outside this
+  app's scope per §6). SQLite persists on a named Docker volume mounted at
+  `/data`.
 - iOS: no CI/CD build artifact for now, since there's no App Store/TestFlight
   distribution in this plan — the iPhone path is the installed PWA served
   directly from the running backend, so it needs no separate build step.

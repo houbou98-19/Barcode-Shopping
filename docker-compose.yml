@@ -1,0 +1,11 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8080:5000"
+    volumes:
+      - shopping_data:/data
+    restart: unless-stopped
+
+volumes:
+  shopping_data:
