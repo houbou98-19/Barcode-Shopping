@@ -74,6 +74,22 @@ rate limiting at the edge, and general exposure hardening are your
 responsibility as the self-hoster — the app only handles what's listed in
 `plan.md` §6.
 
+**If reverse-proxying, disable response buffering for `/api/events`**: the
+app pushes realtime list updates over a long-lived Server-Sent Events
+connection, but nginx buffers proxied responses by default, which delays
+or breaks that stream. In Nginx Proxy Manager, add this under the proxy
+host's Advanced tab (adjust `proxy_pass` to your container's actual
+address):
+
+```nginx
+location /api/events {
+    proxy_pass http://<your-container>:5000;
+    proxy_buffering off;
+    proxy_cache off;
+    proxy_read_timeout 3600s;
+}
+```
+
 ### Clients
 
 - **Any browser (PC, Android, iPhone)**: just open `http://<host>:8080` (or
