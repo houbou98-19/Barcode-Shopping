@@ -358,6 +358,13 @@ function selectView(next) {
   background: var(--surface);
 }
 
+/* Native barcode scanning hides the whole body so the camera preview
+   (rendered behind the WebView) shows through - the tab bar must stay
+   visible and tappable regardless, or there's no way out of the scanner. */
+body.barcode-scanner-active .tab-bar {
+  visibility: visible;
+}
+
 .tab-bar button {
   flex: 1;
   display: flex;
