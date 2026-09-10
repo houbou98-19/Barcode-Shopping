@@ -1,6 +1,7 @@
 from flask import Blueprint, current_app, jsonify, request
 
 from db import get_db
+from events import broadcast
 from extensions import limiter
 from repositories import shopping_list as shopping_list_repo
 
@@ -27,6 +28,7 @@ def add_item():
         return jsonify({"error": "unknown product_id"}), 400
 
     item = shopping_list_repo.create(conn, product_id, quantity)
+    broadcast("list_updated")
     return jsonify(item), 201
 
 
@@ -47,6 +49,7 @@ def update_item(item_id):
         quantity=data.get("quantity"),
         checked=data.get("checked"),
     )
+    broadcast("list_updated")
     return jsonify(item)
 
 
@@ -55,4 +58,5 @@ def update_item(item_id):
 def delete_item(item_id):
     conn = get_db(current_app.config["DATABASE_PATH"])
     shopping_list_repo.delete(conn, item_id)
+    broadcast("list_updated")
     return "", 204

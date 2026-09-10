@@ -15,4 +15,9 @@ COPY --from=frontend-build /frontend/dist ./static
 ENV DATABASE_PATH=/data/shopping.db
 EXPOSE 5000
 
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
+# --worker-class gthread + --threads: SSE (/api/events) holds a connection
+# open indefinitely per client, which would permanently tie up a sync
+# worker per connected client. Threads release the GIL while blocked on
+# queue.get() (see backend/events.py), so this lets one worker serve many
+# open SSE connections plus normal requests concurrently.
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--worker-class", "gthread", "--threads", "8", "app:app"]
