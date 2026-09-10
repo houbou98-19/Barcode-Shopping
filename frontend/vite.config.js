@@ -8,7 +8,6 @@ export default defineConfig({
     vue(),
     VitePWA({
       registerType: 'autoUpdate',
-      devOptions: { enabled: true },
       manifest: {
         name: 'Barcode Shopping',
         short_name: 'Barcode Shopping',

@@ -60,19 +60,97 @@ onBeforeUnmount(stop)
 
 <template>
   <div class="scanner">
-    <video ref="videoRef" playsinline muted></video>
+    <div class="frame">
+      <video ref="videoRef" playsinline muted></video>
+      <div v-if="!error" class="target">
+        <span class="corner tl"></span>
+        <span class="corner tr"></span>
+        <span class="corner bl"></span>
+        <span class="corner br"></span>
+      </div>
+    </div>
+    <p v-if="!error" class="instructions">Point the camera at a barcode</p>
     <p v-if="error" class="error">{{ error }}</p>
   </div>
 </template>
 
 <style scoped>
-.scanner video {
+.scanner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.frame {
+  position: relative;
   width: 100%;
-  max-width: 480px;
+  aspect-ratio: 4 / 3;
   background: #000;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.frame video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.target {
+  position: absolute;
+  inset: 22% 10%;
+  pointer-events: none;
+}
+
+.corner {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border: 3px solid #fff;
+  opacity: 0.85;
+}
+
+.corner.tl {
+  top: 0;
+  left: 0;
+  border-right: none;
+  border-bottom: none;
+  border-radius: 6px 0 0 0;
+}
+
+.corner.tr {
+  top: 0;
+  right: 0;
+  border-left: none;
+  border-bottom: none;
+  border-radius: 0 6px 0 0;
+}
+
+.corner.bl {
+  bottom: 0;
+  left: 0;
+  border-right: none;
+  border-top: none;
+  border-radius: 0 0 0 6px;
+}
+
+.corner.br {
+  bottom: 0;
+  right: 0;
+  border-left: none;
+  border-top: none;
+  border-radius: 0 0 6px 0;
+}
+
+.instructions {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin: 0;
 }
 
 .error {
-  color: #b00020;
+  color: var(--danger);
+  text-align: center;
 }
 </style>
