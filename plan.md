@@ -128,8 +128,17 @@ unreliable, especially on iOS Safari. This plan addresses that directly (see §4
   feature itself (letting a user snap a picture of an item) is still v3
   scope: WebP thumbnail, ~100–128px, ~2–5KB, stored on disk (e.g.
   `/data/product-images/{id}.webp`, keyed by the products.id PK since
-  barcode is not unique — see §5 v1), referenced by path, not stored as a
-  DB blob.
+  barcode is not unique — see §5 v1).
+- **Serving images**: `image_path` is an internal, server-side filesystem
+  path — it is never returned by the API or exposed to the frontend as-is
+  (a raw disk path means nothing to a browser, and images must not be
+  bundled into the frontend build). Instead the backend serves a
+  dedicated endpoint, e.g. `GET /api/products/<id>/image`, that reads the
+  file from disk at request time and streams it back with the right
+  content-type; the frontend always points `<img>` at that deterministic
+  URL and falls back to a placeholder on 404 (no image yet). This also
+  keeps image storage swappable later (local disk vs. S3-compatible
+  bucket) without any frontend change.
 - `ha_integrations`
   - `profile_id` (FK)
   - `ha_base_url`
