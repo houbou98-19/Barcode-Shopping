@@ -1,6 +1,7 @@
 services:
   app:
-    build: .
+    image: ghcr.io/houbou98-19/barcode-shopping:latest
+    pull_policy: always
     ports:
       - "8080:5000"
     volumes:
