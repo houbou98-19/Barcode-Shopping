@@ -251,6 +251,18 @@ function selectView(next) {
   gap: 12px;
 }
 
+/* While native scanning is active, let the scan view grow to fill the
+   whole screen height so Scanner.vue's frame can center the target in
+   the real camera viewport instead of a small boxed area. */
+body.barcode-scanner-active .app-main {
+  display: flex;
+  flex-direction: column;
+}
+
+body.barcode-scanner-active .scan-view {
+  flex: 1;
+}
+
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -356,6 +368,13 @@ function selectView(next) {
   display: flex;
   border-top: 1px solid var(--border);
   background: var(--surface);
+}
+
+/* Native barcode scanning hides the whole body so the camera preview
+   (rendered behind the WebView) shows through - the tab bar must stay
+   visible and tappable regardless, or there's no way out of the scanner. */
+body.barcode-scanner-active .tab-bar {
+  visibility: visible;
 }
 
 .tab-bar button {

@@ -138,11 +138,24 @@ onBeforeUnmount(stop)
 }
 
 /* On native, the camera preview renders behind the whole WebView (see
-   body.barcode-scanner-active in style.css) - this frame just needs to stay
-   visible and transparent so the corner overlay shows on top of it. */
+   body.barcode-scanner-active in style.css), filling the entire screen -
+   so unlike the small boxed video on web, the frame here grows to fill
+   all available height and centers the target within that full area. */
+body.barcode-scanner-active .scanner {
+  visibility: visible;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
 .frame.native-active {
   visibility: visible;
   background: transparent;
+  flex: 1;
+  aspect-ratio: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .frame video {
@@ -155,6 +168,14 @@ onBeforeUnmount(stop)
   position: absolute;
   inset: 22% 10%;
   pointer-events: none;
+}
+
+.frame.native-active .target {
+  position: relative;
+  inset: auto;
+  width: 82%;
+  max-width: 360px;
+  aspect-ratio: 2.2 / 1;
 }
 
 .corner {
