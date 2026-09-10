@@ -1,18 +1,54 @@
 <script setup>
 import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { Capacitor } from '@capacitor/core'
+import { BarcodeScanner } from '@capacitor-mlkit/barcode-scanning'
 import { BarcodeDetector } from 'barcode-detector/pure'
 
 const emit = defineEmits(['scan'])
 
 const videoRef = ref(null)
 const error = ref(null)
+const isNative = Capacitor.isNativePlatform()
 
 let stream = null
 let detector = null
 let intervalId = null
+let barcodeListener = null
 
 async function start() {
   error.value = null
+  if (isNative) {
+    await startNative()
+  } else {
+    await startWeb()
+  }
+}
+
+async function startNative() {
+  try {
+    const { camera } = await BarcodeScanner.checkPermissions()
+    if (camera !== 'granted' && camera !== 'limited') {
+      const requested = await BarcodeScanner.requestPermissions()
+      if (requested.camera !== 'granted' && requested.camera !== 'limited') {
+        error.value = 'Camera permission was denied'
+        return
+      }
+    }
+
+    document.body.classList.add('barcode-scanner-active')
+
+    barcodeListener = await BarcodeScanner.addListener('barcodeScanned', (result) => {
+      stop()
+      emit('scan', result.barcode.rawValue)
+    })
+
+    await BarcodeScanner.startScan()
+  } catch (e) {
+    error.value = e.message || 'Could not access the camera'
+  }
+}
+
+async function startWeb() {
   try {
     stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: 'environment' },
@@ -44,6 +80,16 @@ async function scanFrame() {
 }
 
 function stop() {
+  if (isNative) {
+    document.body.classList.remove('barcode-scanner-active')
+    if (barcodeListener) {
+      barcodeListener.remove()
+      barcodeListener = null
+    }
+    BarcodeScanner.stopScan().catch(() => {})
+    return
+  }
+
   if (intervalId) {
     clearInterval(intervalId)
     intervalId = null
@@ -60,8 +106,8 @@ onBeforeUnmount(stop)
 
 <template>
   <div class="scanner">
-    <div class="frame">
-      <video ref="videoRef" playsinline muted></video>
+    <div class="frame" :class="{ 'native-active': isNative }">
+      <video v-if="!isNative" ref="videoRef" playsinline muted></video>
       <div v-if="!error" class="target">
         <span class="corner tl"></span>
         <span class="corner tr"></span>
@@ -89,6 +135,14 @@ onBeforeUnmount(stop)
   background: #000;
   border-radius: 16px;
   overflow: hidden;
+}
+
+/* On native, the camera preview renders behind the whole WebView (see
+   body.barcode-scanner-active in style.css) - this frame just needs to stay
+   visible and transparent so the corner overlay shows on top of it. */
+.frame.native-active {
+  visibility: visible;
+  background: transparent;
 }
 
 .frame video {
