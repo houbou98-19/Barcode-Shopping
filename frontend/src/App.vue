@@ -23,7 +23,7 @@ async function handleScan(barcode) {
     if (products.length === 0) {
       status.value = 'create'
     } else if (products.length === 1) {
-      await addToList(products[0].id)
+      await addToList(products[0].id, products[0].name)
     } else {
       status.value = 'choose'
     }
@@ -33,7 +33,7 @@ async function handleScan(barcode) {
   }
 }
 
-async function addToList(productId) {
+async function addToList(productId, productName) {
   status.value = 'loading'
   try {
     const res = await fetch('/api/list', {
@@ -43,7 +43,7 @@ async function addToList(productId) {
     })
     if (!res.ok) throw new Error()
     status.value = 'added'
-    message.value = 'Added to list!'
+    message.value = `${productName} was added to list`
   } catch {
     status.value = 'error'
     message.value = 'Could not add item to the list'
@@ -65,9 +65,10 @@ async function createAndAdd() {
     })
     if (!res.ok) throw new Error()
     const product = await res.json()
+    const name = newName.value
     newName.value = ''
     newCategory.value = ''
-    await addToList(product.id)
+    await addToList(product.id, name)
   } catch {
     status.value = 'error'
     message.value = 'Could not create product'
@@ -80,67 +81,284 @@ function scanAgain() {
   matches.value = []
   message.value = ''
 }
+
+function selectView(next) {
+  view.value = next
+  if (next === 'scan') scanAgain()
+}
 </script>
 
 <template>
-  <div id="app">
-    <h1>Barcode Shopping</h1>
+  <div class="app">
+    <header class="app-header">
+      <svg class="logo" viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="1" y="2" width="2.5" height="20" fill="currentColor" />
+        <rect x="5.5" y="2" width="1.2" height="20" fill="currentColor" />
+        <rect x="8" y="2" width="3" height="20" fill="currentColor" />
+        <rect x="12.5" y="2" width="1.2" height="20" fill="currentColor" />
+        <rect x="15" y="2" width="2" height="20" fill="currentColor" />
+        <rect x="18.5" y="2" width="1.2" height="20" fill="currentColor" />
+        <rect x="21" y="2" width="2" height="20" fill="currentColor" />
+      </svg>
+      <h1>Barcode Shopping</h1>
+    </header>
 
-    <nav class="tabs">
-      <button :class="{ active: view === 'scan' }" @click="view = 'scan'">Scan</button>
-      <button :class="{ active: view === 'list' }" @click="view = 'list'">List</button>
-    </nav>
+    <main class="app-main">
+      <section v-if="view === 'scan'" class="scan-view">
+        <Scanner v-if="status === 'idle'" @scan="handleScan" />
 
-    <section v-if="view === 'scan'">
-      <Scanner v-if="status === 'idle'" @scan="handleScan" />
+        <p v-if="status === 'loading'" class="hint">Working...</p>
 
-      <p v-if="status === 'loading'">Working...</p>
+        <div v-if="status === 'choose'" class="card">
+          <p>Multiple products found for barcode <code>{{ scannedBarcode }}</code>:</p>
+          <ul class="choice-list">
+            <li v-for="p in matches" :key="p.id">
+              <button class="btn btn-secondary" @click="addToList(p.id, p.name)">
+                {{ p.name }} <span class="muted">({{ p.category || 'no category' }})</span>
+              </button>
+            </li>
+          </ul>
+        </div>
 
-      <div v-if="status === 'choose'">
-        <p>Multiple products found for barcode {{ scannedBarcode }}:</p>
-        <ul>
-          <li v-for="p in matches" :key="p.id">
-            <button @click="addToList(p.id)">
-              {{ p.name }} ({{ p.category || 'no category' }})
-            </button>
-          </li>
-        </ul>
-      </div>
+        <div v-if="status === 'create'" class="card">
+          <p>No product found for barcode <code>{{ scannedBarcode }}</code>. Add it:</p>
+          <div class="form-row">
+            <input v-model="newName" placeholder="Product name" />
+            <input v-model="newCategory" placeholder="Category (optional)" />
+          </div>
+          <button class="btn btn-primary" @click="createAndAdd">Add &amp; add to list</button>
+        </div>
 
-      <div v-if="status === 'create'">
-        <p>No product found for barcode {{ scannedBarcode }}. Add it:</p>
-        <input v-model="newName" placeholder="Product name" />
-        <input v-model="newCategory" placeholder="Category (optional)" />
-        <button @click="createAndAdd">Add product &amp; add to list</button>
-      </div>
+        <template v-if="status === 'added'">
+          <p class="hint success">{{ message }}</p>
+          <button class="scan-again-panel" @click="scanAgain">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M4 8V6a2 2 0 0 1 2-2h2M4 16v2a2 2 0 0 0 2 2h2M20 8V6a2 2 0 0 0-2-2h-2M20 16v2a2 2 0 0 1-2 2h-2M4 12h16"
+              />
+            </svg>
+            Scan again
+          </button>
+        </template>
 
-      <p v-if="status === 'added'">{{ message }}</p>
-      <p v-if="status === 'error'" class="error">{{ message }}</p>
+        <p v-if="status === 'error'" class="hint error">{{ message }}</p>
 
-      <button v-if="status !== 'idle' && status !== 'loading'" @click="scanAgain">
-        Scan again
+        <button
+          v-if="status === 'choose' || status === 'create' || status === 'error'"
+          class="btn btn-secondary"
+          @click="scanAgain"
+        >
+          Scan again
+        </button>
+      </section>
+
+      <section v-if="view === 'list'">
+        <ShoppingList />
+      </section>
+    </main>
+
+    <nav class="tab-bar">
+      <button :class="{ active: view === 'scan' }" @click="selectView('scan')">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M4 8V6a2 2 0 0 1 2-2h2M4 16v2a2 2 0 0 0 2 2h2M20 8V6a2 2 0 0 0-2-2h-2M20 16v2a2 2 0 0 1-2 2h-2M4 12h16"
+          />
+        </svg>
+        Scan
       </button>
-    </section>
-
-    <section v-if="view === 'list'">
-      <ShoppingList />
-    </section>
+      <button :class="{ active: view === 'list' }" @click="selectView('list')">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"
+          />
+        </svg>
+        List
+      </button>
+    </nav>
   </div>
 </template>
 
 <style scoped>
-.tabs {
+.app {
   display: flex;
+  flex-direction: column;
+  min-height: 100svh;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+}
+
+.logo {
+  width: 22px;
+  height: 22px;
+  color: var(--text);
+  flex-shrink: 0;
+}
+
+.app-header h1 {
+  font-size: 1.15rem;
+  margin: 0;
+}
+
+.app-main {
+  flex: 1;
+  padding: 0 16px 16px;
+}
+
+.scan-view {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+
+.card code {
+  background: var(--bg);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.form-row {
+  display: flex;
+  flex-direction: column;
   gap: 8px;
-  margin-bottom: 16px;
+  margin: 12px 0;
 }
 
-.tabs button.active {
-  font-weight: bold;
-  text-decoration: underline;
+.form-row input {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
 }
 
-.error {
-  color: #b00020;
+.choice-list {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.btn {
+  border: none;
+  border-radius: 999px;
+  padding: 10px 18px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.btn-secondary {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  width: 100%;
+  text-align: left;
+}
+
+.scan-again-panel {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: var(--surface);
+  border: 2px dashed var(--border);
+  border-radius: 16px;
+  color: var(--text);
+  font-size: 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.scan-again-panel svg {
+  width: 40px;
+  height: 40px;
+  color: var(--accent);
+}
+
+.muted {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.hint {
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.hint.success {
+  color: var(--accent);
+}
+
+.hint.error {
+  color: var(--danger);
+}
+
+.tab-bar {
+  display: flex;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.tab-bar button {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 0 max(10px, env(safe-area-inset-bottom));
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.tab-bar button svg {
+  width: 22px;
+  height: 22px;
+}
+
+.tab-bar button.active {
+  color: var(--accent);
 }
 </style>
