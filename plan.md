@@ -240,3 +240,7 @@ imposed on derivatives.
 - Whether v1's single shared list should get a minimal "who added this" text
   field (free-text name, not a real profile) as a cheap stopgap before v2's
   full profile system — optional, not required.
+- v2 profiles: generate each profile's avatar as a barcode encoding their
+  name, same technique as the app favicon (ASCII code of each letter as a
+  3-digit triplet, rendered as UPC-A-style bars). Placeholder generic
+  barcode logo stays in the header until profiles exist.
