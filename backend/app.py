@@ -4,6 +4,7 @@ from flask import Flask, abort, send_from_directory
 from flask_cors import CORS
 
 from db import close_db, init_db
+from extensions import limiter
 from routes.products import products_bp
 from routes.shopping_list import shopping_list_bp
 
@@ -22,6 +23,10 @@ def create_app():
     # meaningful protection; this gets revisited once v2 profile sessions
     # exist (issue #8).
     CORS(app, resources={r"/api/*": {"origins": "*"}})
+
+    # No default/global limit: reads (product/list listing) stay unlimited,
+    # individual write routes opt in to their own limit via @limiter.limit(...).
+    limiter.init_app(app)
 
     init_db(DB_PATH)
     app.teardown_appcontext(close_db)
@@ -48,4 +53,7 @@ def create_app():
 app = create_app()
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    # Only used for local development (gunicorn runs the app in production -
+    # see docker-compose.yml). Off by default so an accidental production
+    # invocation of this entrypoint doesn't expose the Werkzeug debugger.
+    app.run(debug=os.environ.get("FLASK_DEBUG") == "1")
