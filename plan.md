@@ -75,6 +75,17 @@ unreliable, especially on iOS Safari. This plan addresses that directly (see §4
 ### 4.3 Deployment
 - **Docker Compose** as the primary, officially supported self-host method:
   one command spins up backend + DB + frontend.
+- `docker-compose.yml` declares its own dedicated bridge network rather than
+  relying on Docker's implicit default `bridge` network. Verified on a real
+  deployment (ZimaOS): the default `bridge` network's port-publishing NAT
+  can end up broken on a host (container healthy internally, `docker ps`
+  shows the mapping, but the published port never becomes reachable
+  externally) while a dedicated per-project bridge network works
+  correctly — this is what `docker compose up` creates automatically by
+  default anyway, we just declare it explicitly for clarity/consistency
+  across install methods (some simplified app-install UIs, e.g. ZimaOS's
+  manual form, don't run real compose semantics and default to plain
+  `bridge` unless a network is explicitly specified).
 
 ### 4.4 Network access (documented, not built)
 - Recommended: VPN into home network (e.g. Tailscale/WireGuard) — zero app-side
