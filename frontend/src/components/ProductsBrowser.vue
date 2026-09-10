@@ -1,10 +1,12 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import ProductCard from './ProductCard.vue'
 
 const products = ref([])
 const loading = ref(false)
 const error = ref('')
 const search = ref('')
+const selectedProduct = ref(null)
 
 async function load() {
   loading.value = true
@@ -56,7 +58,15 @@ onMounted(load)
     </p>
 
     <ul>
-      <li v-for="p in filteredProducts" :key="p.id" class="card">
+      <li
+        v-for="p in filteredProducts"
+        :key="p.id"
+        class="card"
+        tabindex="0"
+        @click="selectedProduct = p"
+        @keydown.enter="selectedProduct = p"
+        @keydown.space.prevent="selectedProduct = p"
+      >
         <div class="info">
           <span class="name">{{ p.name }}</span>
           <span v-if="p.category" class="chip">{{ p.category }}</span>
@@ -64,6 +74,8 @@ onMounted(load)
         <span class="barcode">{{ p.barcode }}</span>
       </li>
     </ul>
+
+    <ProductCard v-if="selectedProduct" :product="selectedProduct" @close="selectedProduct = null" />
   </div>
 </template>
 
@@ -113,6 +125,12 @@ ul {
   border-radius: 12px;
   padding: 12px;
   box-shadow: var(--shadow);
+  cursor: pointer;
+}
+
+.card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .info {
