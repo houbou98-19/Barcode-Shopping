@@ -1,9 +1,47 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 
 const items = ref([])
 const loading = ref(false)
 const error = ref('')
+const search = ref('')
+const sortKey = ref('added') // 'added' | 'category' | 'name'
+const sortDir = ref(1) // 1 = ascending, -1 = descending
+
+function setSort(key) {
+  if (sortKey.value === key) {
+    sortDir.value *= -1
+  } else {
+    sortKey.value = key
+    sortDir.value = 1
+  }
+}
+
+const filteredItems = computed(() => {
+  const q = search.value.trim().toLowerCase()
+  if (!q) return items.value
+  return items.value.filter(
+    (item) =>
+      item.name.toLowerCase().includes(q) || (item.category || '').toLowerCase().includes(q)
+  )
+})
+
+const sortedItems = computed(() => {
+  const list = [...filteredItems.value]
+  const dir = sortDir.value
+  list.sort((a, b) => {
+    let cmp
+    if (sortKey.value === 'added') {
+      cmp = a.added_at < b.added_at ? -1 : a.added_at > b.added_at ? 1 : 0
+    } else if (sortKey.value === 'category') {
+      cmp = (a.category || '').toLowerCase().localeCompare((b.category || '').toLowerCase())
+    } else {
+      cmp = a.name.toLowerCase().localeCompare(b.name.toLowerCase())
+    }
+    return cmp * dir
+  })
+  return list
+})
 
 async function load() {
   loading.value = true
@@ -69,6 +107,49 @@ onMounted(load)
 
 <template>
   <div class="shopping-list">
+    <div v-if="!loading && items.length > 0" class="toolbar">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="m21 21-4.35-4.35M19 11a8 8 0 1 1-16 0 8 8 0 0 1 16 0"
+          />
+        </svg>
+        <input v-model="search" type="text" placeholder="Search items or groups" />
+      </div>
+
+      <div class="sort-row">
+        <button
+          class="sort-chip"
+          :class="{ active: sortKey === 'added' }"
+          @click="setSort('added')"
+        >
+          Time added
+          <span v-if="sortKey === 'added'" class="arrow">{{ sortDir === 1 ? '↑' : '↓' }}</span>
+        </button>
+        <button
+          class="sort-chip"
+          :class="{ active: sortKey === 'category' }"
+          @click="setSort('category')"
+        >
+          Group name
+          <span v-if="sortKey === 'category'" class="arrow">{{ sortDir === 1 ? '↑' : '↓' }}</span>
+        </button>
+        <button
+          class="sort-chip"
+          :class="{ active: sortKey === 'name' }"
+          @click="setSort('name')"
+        >
+          Item name
+          <span v-if="sortKey === 'name'" class="arrow">{{ sortDir === 1 ? '↑' : '↓' }}</span>
+        </button>
+      </div>
+    </div>
+
     <p v-if="loading" class="hint">Loading...</p>
     <p v-if="error" class="hint error">{{ error }}</p>
 
@@ -86,9 +167,13 @@ onMounted(load)
       <p>Your shopping list is empty</p>
     </div>
 
+    <p v-if="!loading && items.length > 0 && sortedItems.length === 0" class="hint">
+      No items match "{{ search }}"
+    </p>
+
     <ul>
       <li
-        v-for="item in items"
+        v-for="item in sortedItems"
         :key="item.id"
         class="card"
         :class="{ checked: item.checked }"
@@ -130,6 +215,69 @@ onMounted(load)
 </template>
 
 <style scoped>
+.toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 8px 14px;
+}
+
+.search-box svg {
+  width: 18px;
+  height: 18px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.search-box input {
+  flex: 1;
+  border: none;
+  background: none;
+  color: var(--text);
+  outline: none;
+  min-width: 0;
+}
+
+.sort-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+}
+
+.sort-chip {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.sort-chip.active {
+  color: var(--accent-contrast);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.arrow {
+  font-weight: bold;
+}
+
 .shopping-list ul {
   list-style: none;
   padding: 0;
