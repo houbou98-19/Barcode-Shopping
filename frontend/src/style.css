@@ -47,3 +47,13 @@ button {
 input {
   font: inherit;
 }
+
+/* Native (Capacitor/ML Kit) barcode scanning renders the camera preview
+   behind the WebView, so everything else needs to become invisible/
+   transparent for it to show through. Scanner.vue's own frame explicitly
+   re-enables visibility on itself so the scan-target overlay still shows
+   on top of the native camera feed. */
+body.barcode-scanner-active {
+  visibility: hidden;
+  background: transparent;
+}

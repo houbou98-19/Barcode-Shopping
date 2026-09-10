@@ -1,0 +1,5 @@
+# Shell scripts must stay LF-only regardless of the committer's platform/git
+# config, or they break (bad interpreter) when checked out and run on Linux
+# CI runners.
+*.sh text eol=lf
+gradlew text eol=lf
