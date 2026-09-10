@@ -1,7 +1,7 @@
 def get_all(conn):
     rows = conn.execute(
         """
-        SELECT shopping_list_items.*, products.name, products.category
+        SELECT shopping_list_items.*, products.name, products.category, products.barcode
         FROM shopping_list_items
         JOIN products ON products.id = shopping_list_items.product_id
         ORDER BY shopping_list_items.added_at

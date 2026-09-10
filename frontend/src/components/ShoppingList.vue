@@ -1,10 +1,12 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import ProductCard from './ProductCard.vue'
 
 const items = ref([])
 const loading = ref(false)
 const error = ref('')
 const search = ref('')
+const selectedProduct = ref(null)
 const sortKey = ref('added') // 'added' | 'category' | 'name'
 const sortDir = ref(1) // 1 = ascending, -1 = descending
 
@@ -102,6 +104,15 @@ async function removeItem(item) {
   }
 }
 
+function openDetail(item) {
+  selectedProduct.value = {
+    id: item.product_id,
+    name: item.name,
+    category: item.category,
+    barcode: item.barcode,
+  }
+}
+
 onMounted(load)
 </script>
 
@@ -177,14 +188,20 @@ onMounted(load)
         :key="item.id"
         class="card"
         :class="{ checked: item.checked }"
-        role="checkbox"
-        :aria-checked="!!item.checked"
         tabindex="0"
-        @click="toggleChecked(item)"
-        @keydown.enter="toggleChecked(item)"
-        @keydown.space.prevent="toggleChecked(item)"
+        @click="openDetail(item)"
+        @keydown.enter="openDetail(item)"
+        @keydown.space.prevent="openDetail(item)"
       >
-        <span class="checkmark" aria-hidden="true"></span>
+        <span
+          class="checkmark"
+          role="checkbox"
+          :aria-checked="!!item.checked"
+          tabindex="0"
+          @click.stop="toggleChecked(item)"
+          @keydown.enter.stop="toggleChecked(item)"
+          @keydown.space.stop.prevent="toggleChecked(item)"
+        ></span>
 
         <div class="info">
           <span class="name">{{ item.name }}</span>
@@ -211,6 +228,13 @@ onMounted(load)
         </button>
       </li>
     </ul>
+
+    <ProductCard
+      v-if="selectedProduct"
+      :product="selectedProduct"
+      :show-add-button="false"
+      @close="selectedProduct = null"
+    />
   </div>
 </template>
 
@@ -312,7 +336,13 @@ onMounted(load)
   border: 2px solid var(--border);
   border-radius: 6px;
   display: inline-block;
+  cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
+}
+
+.checkmark:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .card.checked .checkmark {
