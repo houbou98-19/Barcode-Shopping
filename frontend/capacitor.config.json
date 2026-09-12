@@ -1,5 +1,8 @@
 {
   "appId": "com.barcodeshopping.app",
   "appName": "Barcode Shopping",
-  "webDir": "dist"
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "http"
+  }
 }
