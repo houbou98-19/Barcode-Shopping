@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { apiUrl, setSession } from '../api'
+import Settings from './Settings.vue'
 
 const emit = defineEmits(['login'])
 
@@ -15,6 +16,19 @@ const creating = ref(false)
 const newName = ref('')
 const newPin = ref('')
 const createError = ref('')
+
+// The native Android app has no real origin to resolve a relative
+// /api/... path against - Server URL must be set before this screen's
+// own fetch to /api/profiles can ever succeed. Gating the whole app
+// behind login (see App.vue) means this is the only place a first-run
+// native user could reach that setting, so it has to be reachable from
+// here too, not just from the post-login Settings tab.
+const showServerSettings = ref(false)
+
+function closeServerSettings() {
+  showServerSettings.value = false
+  loadProfiles()
+}
 
 async function loadProfiles() {
   loadError.value = ''
@@ -94,10 +108,19 @@ onMounted(loadProfiles)
 </script>
 
 <template>
-  <div class="login-screen">
+  <div v-if="showServerSettings" class="login-screen">
+    <h1>Server settings</h1>
+    <Settings />
+    <button class="btn btn-secondary" @click="closeServerSettings">Back</button>
+  </div>
+
+  <div v-else class="login-screen">
     <h1>Who's shopping?</h1>
 
     <p v-if="loadError" class="hint error">{{ loadError }}</p>
+    <button v-if="loadError" class="btn btn-secondary" @click="showServerSettings = true">
+      Server settings
+    </button>
 
     <div v-if="!selected && !creating" class="profile-grid">
       <button v-for="p in profiles" :key="p.id" class="profile-btn" @click="choose(p)">
