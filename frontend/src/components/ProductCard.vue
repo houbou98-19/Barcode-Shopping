@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { apiFetch } from '../api'
 
 const props = defineProps({
@@ -9,6 +9,15 @@ const props = defineProps({
 const emit = defineEmits(['close', 'added'])
 
 const status = ref('idle') // idle | adding | added | error
+
+// added_at is stored as a UTC "YYYY-MM-DD HH:MM:SS" string (SQLite
+// datetime('now'), no timezone suffix) - Date would otherwise parse it
+// as local time, which is wrong.
+const addedAtDisplay = computed(() => {
+  if (!props.product.addedAt) return ''
+  const date = new Date(props.product.addedAt.replace(' ', 'T') + 'Z')
+  return date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+})
 
 async function addToList() {
   status.value = 'adding'
@@ -48,6 +57,9 @@ async function addToList() {
       <h2>{{ product.name }}</h2>
       <p v-if="product.category" class="chip">{{ product.category }}</p>
       <p class="barcode">{{ product.barcode }}</p>
+      <p v-if="product.addedByName" class="added-by">
+        Added by {{ product.addedByName }} · {{ addedAtDisplay }}
+      </p>
 
       <button
         v-if="showAddButton"
@@ -148,6 +160,12 @@ async function addToList() {
 .barcode {
   font-family: ui-monospace, Consolas, monospace;
   font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.added-by {
+  font-size: 0.78rem;
   color: var(--text-muted);
   margin: 0;
 }
