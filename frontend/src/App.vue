@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue'
-import { apiUrl, getSession } from './api'
+import { apiFetch, getSession } from './api'
 import ProductsBrowser from './components/ProductsBrowser.vue'
 import ProfileLogin from './components/ProfileLogin.vue'
 import Scanner from './components/Scanner.vue'
@@ -31,7 +31,7 @@ async function handleScan(barcode) {
   status.value = 'loading'
   message.value = ''
   try {
-    const res = await fetch(apiUrl(`/api/products/barcode/${encodeURIComponent(barcode)}`))
+    const res = await apiFetch(`/api/products/barcode/${encodeURIComponent(barcode)}`)
     const products = await res.json()
     matches.value = products
     if (products.length === 0) {
@@ -50,7 +50,7 @@ async function handleScan(barcode) {
 async function addToList(productId, productName) {
   status.value = 'loading'
   try {
-    const res = await fetch(apiUrl('/api/list'), {
+    const res = await apiFetch('/api/list', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ product_id: productId }),
@@ -68,7 +68,7 @@ async function createAndAdd() {
   if (!newName.value) return
   status.value = 'loading'
   try {
-    const res = await fetch(apiUrl('/api/products'), {
+    const res = await apiFetch('/api/products', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

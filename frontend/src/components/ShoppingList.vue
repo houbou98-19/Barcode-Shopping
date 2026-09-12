@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { apiUrl } from '../api'
+import { apiFetch, apiUrl } from '../api'
 import ProductCard from './ProductCard.vue'
 
 const items = ref([])
@@ -50,7 +50,7 @@ async function load({ silent = false } = {}) {
   if (!silent) loading.value = true
   error.value = ''
   try {
-    const res = await fetch(apiUrl('/api/list'))
+    const res = await apiFetch('/api/list')
     if (!res.ok) throw new Error()
     items.value = await res.json()
   } catch {
@@ -65,7 +65,7 @@ async function toggleChecked(item) {
   const previous = item.checked
   item.checked = checked
   try {
-    const res = await fetch(apiUrl(`/api/list/${item.id}`), {
+    const res = await apiFetch(`/api/list/${item.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ checked: !!checked }),
@@ -83,7 +83,7 @@ async function changeQuantity(item, delta) {
   const previous = item.quantity
   item.quantity = newQuantity
   try {
-    const res = await fetch(apiUrl(`/api/list/${item.id}`), {
+    const res = await apiFetch(`/api/list/${item.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ quantity: newQuantity }),
@@ -97,7 +97,7 @@ async function changeQuantity(item, delta) {
 
 async function removeItem(item) {
   try {
-    const res = await fetch(apiUrl(`/api/list/${item.id}`), { method: 'DELETE' })
+    const res = await apiFetch(`/api/list/${item.id}`, { method: 'DELETE' })
     if (!res.ok) throw new Error()
     items.value = items.value.filter((i) => i.id !== item.id)
   } catch {
