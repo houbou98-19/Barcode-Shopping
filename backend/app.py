@@ -6,6 +6,7 @@ from flask_cors import CORS
 from db import close_db, init_db
 from events import subscribe
 from extensions import limiter
+from routes.auth import auth_bp
 from routes.products import products_bp
 from routes.shopping_list import shopping_list_bp
 
@@ -32,6 +33,7 @@ def create_app():
     init_db(DB_PATH)
     app.teardown_appcontext(close_db)
 
+    app.register_blueprint(auth_bp)
     app.register_blueprint(products_bp)
     app.register_blueprint(shopping_list_bp)
 

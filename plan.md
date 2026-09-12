@@ -125,9 +125,13 @@ unreliable, especially on iOS Safari. This plan addresses that directly (see §4
   - `failed_attempts`
   - `locked_until`
 - `sessions`
-  - `token` (PK, opaque random string — not a decodable JWT)
+  - `token_hash` (PK, SHA-256 hash of an opaque random string — not a
+    decodable JWT; the raw token is only ever given to the client, never
+    stored, so a leaked DB file alone can't be used to replay a session)
   - `profile_id` (FK)
-  - `expires_at` (sliding 30-day expiry, refreshed on each authenticated use)
+  - `expires_at` (sliding 1-week expiry, refreshed on each authenticated
+    use — short enough to cap exposure from a forgotten/stolen device,
+    long enough that a weekly shopping cadence never sees a prompt)
 - `shopping_list_items` gains:
   - `profile_id` (FK → profiles) — list becomes per-user private
   - `added_by_profile_id` (FK → profiles)
@@ -183,7 +187,7 @@ internet-exposed via reverse proxy — this is what the *app* must own:
   it's the natural point to reassess.
 - **v2**: PIN verification with lockout (5 failed attempts → 15 min lock per
   profile); opaque session token issued on successful PIN check, sent as
-  Bearer header, required on all write endpoints; sliding 30-day expiry
+  Bearer header, required on all write endpoints; sliding 1-week expiry
   (refreshed on each successful use); per-profile rate limiting on
   scan/add-item endpoints (e.g. 30 requests/minute) as defense-in-depth on
   top of IP-based limiting.
