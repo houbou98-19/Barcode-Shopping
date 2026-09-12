@@ -1,10 +1,21 @@
 <script setup>
 import { ref } from 'vue'
-import { apiUrl } from './api'
+import { apiUrl, getSession } from './api'
 import ProductsBrowser from './components/ProductsBrowser.vue'
+import ProfileLogin from './components/ProfileLogin.vue'
 import Scanner from './components/Scanner.vue'
 import Settings from './components/Settings.vue'
 import ShoppingList from './components/ShoppingList.vue'
+
+const session = ref(getSession())
+
+function handleLogin() {
+  session.value = getSession()
+}
+
+function handleLoggedOut() {
+  session.value = null
+}
 
 const view = ref('scan') // 'scan' | 'list' | 'products' | 'settings'
 
@@ -92,7 +103,9 @@ function selectView(next) {
 </script>
 
 <template>
-  <div class="app">
+  <ProfileLogin v-if="!session" @login="handleLogin" />
+
+  <div v-else class="app">
     <header class="app-header">
       <button class="title-btn" @click="view = 'products'">
         <svg class="logo" viewBox="0 0 24 24" aria-hidden="true">
@@ -171,7 +184,7 @@ function selectView(next) {
       </section>
 
       <section v-if="view === 'settings'">
-        <Settings />
+        <Settings :session="session" @logged-out="handleLoggedOut" />
       </section>
     </main>
 

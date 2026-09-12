@@ -1,30 +1,31 @@
 <script setup>
 import { onMounted, ref } from 'vue'
-import { apiUrl, getServerUrl, setServerUrl } from '../api'
+import { apiUrl, clearSession, getServerUrl, setServerUrl } from '../api'
 
-const displayName = ref('')
+const props = defineProps({ session: Object })
+const emit = defineEmits(['logged-out'])
+
 const serverUrl = ref('')
 const saved = ref(false)
 const testResult = ref(null)
 const testing = ref(false)
 
 function load() {
-  displayName.value = localStorage.getItem('displayName') || ''
   serverUrl.value = getServerUrl()
 }
 
 function save() {
-  if (displayName.value) {
-    localStorage.setItem('displayName', displayName.value)
-  } else {
-    localStorage.removeItem('displayName')
-  }
   setServerUrl(serverUrl.value.trim())
   saved.value = true
   testResult.value = null
   setTimeout(() => {
     saved.value = false
   }, 1500)
+}
+
+function switchProfile() {
+  clearSession()
+  emit('logged-out')
 }
 
 async function testConnection() {
@@ -51,16 +52,13 @@ onMounted(load)
 <template>
   <div class="settings">
     <div class="card">
-      <label class="field">
-        <span class="label">Display name</span>
-        <input v-model="displayName" type="text" placeholder="e.g. Alex" />
-      </label>
-
-      <label class="field">
-        <span class="label">Pin code</span>
-        <input type="password" placeholder="Coming soon" disabled />
-        <span class="hint">Not implemented yet - will lock the app per person</span>
-      </label>
+      <div class="field" v-if="props.session">
+        <span class="label">Profile</span>
+        <div class="profile-row">
+          <span>{{ props.session.profileName }}</span>
+          <button class="btn btn-secondary" @click="switchProfile">Switch profile</button>
+        </div>
+      </div>
 
       <label class="field">
         <span class="label">Server URL</span>
@@ -149,6 +147,13 @@ onMounted(load)
 
 .actions {
   display: flex;
+  gap: 10px;
+}
+
+.profile-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 10px;
 }
 

@@ -1,4 +1,5 @@
 const SERVER_URL_KEY = 'serverUrl'
+const SESSION_KEY = 'session'
 
 export function getServerUrl() {
   return localStorage.getItem(SERVER_URL_KEY) || ''
@@ -10,6 +11,25 @@ export function setServerUrl(url) {
   } else {
     localStorage.removeItem(SERVER_URL_KEY)
   }
+}
+
+/**
+ * The active profile's session, as issued by POST /api/profiles/<id>/verify-pin:
+ * { token, profileId, profileName }. Nothing besides local storage cares about
+ * this yet (write endpoints don't require it until #29) - it's stored now so
+ * the login screen has somewhere to remember "who's using the app".
+ */
+export function getSession() {
+  const raw = localStorage.getItem(SESSION_KEY)
+  return raw ? JSON.parse(raw) : null
+}
+
+export function setSession(session) {
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session))
+}
+
+export function clearSession() {
+  localStorage.removeItem(SESSION_KEY)
 }
 
 /**
