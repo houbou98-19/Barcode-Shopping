@@ -111,6 +111,8 @@ function openDetail(item) {
     name: item.name,
     category: item.category,
     barcode: item.barcode,
+    addedByName: item.added_by_name,
+    addedAt: item.added_at,
   }
 }
 

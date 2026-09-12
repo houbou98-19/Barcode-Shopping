@@ -1,9 +1,11 @@
 def get_all(conn, profile_id):
     rows = conn.execute(
         """
-        SELECT shopping_list_items.*, products.name, products.category, products.barcode
+        SELECT shopping_list_items.*, products.name, products.category, products.barcode,
+               profiles.name AS added_by_name
         FROM shopping_list_items
         JOIN products ON products.id = shopping_list_items.product_id
+        JOIN profiles ON profiles.id = shopping_list_items.added_by_profile_id
         WHERE shopping_list_items.profile_id = ?
         ORDER BY shopping_list_items.added_at
         """,
