@@ -1,10 +1,12 @@
 <script setup>
 import { onMounted, ref } from 'vue'
-import { getServerUrl, setServerUrl } from '../api'
+import { apiUrl, getServerUrl, setServerUrl } from '../api'
 
 const displayName = ref('')
 const serverUrl = ref('')
 const saved = ref(false)
+const testResult = ref(null)
+const testing = ref(false)
 
 function load() {
   displayName.value = localStorage.getItem('displayName') || ''
@@ -19,9 +21,28 @@ function save() {
   }
   setServerUrl(serverUrl.value.trim())
   saved.value = true
+  testResult.value = null
   setTimeout(() => {
     saved.value = false
   }, 1500)
+}
+
+async function testConnection() {
+  testing.value = true
+  testResult.value = null
+  try {
+    const res = await fetch(apiUrl('/api/list'))
+    testResult.value = res.ok
+      ? { ok: true, message: `Connected (status ${res.status})` }
+      : { ok: false, message: `Server responded with status ${res.status}` }
+  } catch (err) {
+    // fetch() gives no way to tell a CORS block apart from a genuine
+    // network failure (DNS, unreachable host, refused connection) - both
+    // surface as the same generic TypeError.
+    testResult.value = { ok: false, message: 'Could not reach server (network error, blocked, or unreachable)' }
+  } finally {
+    testing.value = false
+  }
 }
 
 onMounted(load)
@@ -49,8 +70,14 @@ onMounted(load)
         </span>
       </label>
 
-      <button class="btn btn-primary" @click="save">Save</button>
+      <div class="actions">
+        <button class="btn btn-primary" @click="save">Save</button>
+        <button class="btn btn-secondary" :disabled="testing" @click="testConnection">
+          {{ testing ? 'Testing...' : 'Test connection' }}
+        </button>
+      </div>
       <p v-if="saved" class="saved-msg">Saved!</p>
+      <p v-if="testResult" :class="testResult.ok ? 'test-ok' : 'test-error'">{{ testResult.message }}</p>
     </div>
   </div>
 </template>
@@ -109,8 +136,36 @@ onMounted(load)
   color: var(--accent-contrast);
 }
 
+.btn-secondary {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+}
+
 .saved-msg {
   color: var(--accent);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.test-ok {
+  color: var(--accent);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.test-error {
+  color: #f87171;
   font-size: 0.85rem;
   margin: 0;
 }
