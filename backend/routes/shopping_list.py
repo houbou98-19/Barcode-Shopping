@@ -1,4 +1,4 @@
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, current_app, g, jsonify, request
 
 from db import get_db
 from events import broadcast
@@ -13,7 +13,7 @@ shopping_list_bp = Blueprint("shopping_list", __name__, url_prefix="/api/list")
 @require_session
 def list_items():
     conn = get_db(current_app.config["DATABASE_PATH"])
-    return jsonify(shopping_list_repo.get_all(conn))
+    return jsonify(shopping_list_repo.get_all(conn, g.profile_id))
 
 
 @shopping_list_bp.post("")
@@ -30,7 +30,7 @@ def add_item():
     if not shopping_list_repo.product_exists(conn, product_id):
         return jsonify({"error": "unknown product_id"}), 400
 
-    item = shopping_list_repo.create(conn, product_id, quantity)
+    item = shopping_list_repo.create(conn, product_id, quantity, g.profile_id)
     broadcast("list_updated")
     return jsonify(item), 201
 
@@ -44,7 +44,10 @@ def update_item(item_id):
         return jsonify({"error": "nothing to update"}), 400
 
     conn = get_db(current_app.config["DATABASE_PATH"])
-    if shopping_list_repo.get_by_id(conn, item_id) is None:
+    existing = shopping_list_repo.get_by_id(conn, item_id)
+    # Same 404 whether the item doesn't exist or belongs to another
+    # profile - doesn't leak that a given id belongs to someone else.
+    if existing is None or existing["profile_id"] != g.profile_id:
         return jsonify({"error": "not found"}), 404
 
     item = shopping_list_repo.update(
@@ -62,6 +65,10 @@ def update_item(item_id):
 @require_session
 def delete_item(item_id):
     conn = get_db(current_app.config["DATABASE_PATH"])
+    existing = shopping_list_repo.get_by_id(conn, item_id)
+    if existing is None or existing["profile_id"] != g.profile_id:
+        return jsonify({"error": "not found"}), 404
+
     shopping_list_repo.delete(conn, item_id)
     broadcast("list_updated")
     return "", 204
