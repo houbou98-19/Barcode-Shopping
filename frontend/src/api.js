@@ -15,9 +15,8 @@ export function setServerUrl(url) {
 
 /**
  * The active profile's session, as issued by POST /api/profiles/<id>/verify-pin:
- * { token, profileId, profileName }. Nothing besides local storage cares about
- * this yet (write endpoints don't require it until #29) - it's stored now so
- * the login screen has somewhere to remember "who's using the app".
+ * { token, profileId, profileName }. apiFetch() attaches its token as a
+ * Bearer header on every request, since v1 write endpoints require it (#29).
  */
 export function getSession() {
   const raw = localStorage.getItem(SESSION_KEY)
@@ -43,4 +42,17 @@ export function apiUrl(path) {
   const base = getServerUrl()
   if (!base) return path
   return base.replace(/\/+$/, '') + path
+}
+
+/**
+ * fetch() wrapper that attaches the active session's token as a Bearer
+ * header (harmless on the read-only/unauthenticated routes that ignore it).
+ */
+export function apiFetch(path, options = {}) {
+  const session = getSession()
+  const headers = { ...options.headers }
+  if (session) {
+    headers.Authorization = `Bearer ${session.token}`
+  }
+  return fetch(apiUrl(path), { ...options, headers })
 }

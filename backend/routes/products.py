@@ -3,6 +3,7 @@ from flask import Blueprint, current_app, jsonify, request
 from db import get_db
 from extensions import limiter
 from repositories import products as products_repo
+from session_auth import require_session
 
 products_bp = Blueprint("products", __name__, url_prefix="/api/products")
 
@@ -19,6 +20,7 @@ def list_products():
 
 @products_bp.post("")
 @limiter.limit("20/minute")
+@require_session
 def create_product():
     data = request.get_json(force=True)
     barcode = (data.get("barcode") or "").strip()

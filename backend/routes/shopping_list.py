@@ -4,11 +4,13 @@ from db import get_db
 from events import broadcast
 from extensions import limiter
 from repositories import shopping_list as shopping_list_repo
+from session_auth import require_session
 
 shopping_list_bp = Blueprint("shopping_list", __name__, url_prefix="/api/list")
 
 
 @shopping_list_bp.get("")
+@require_session
 def list_items():
     conn = get_db(current_app.config["DATABASE_PATH"])
     return jsonify(shopping_list_repo.get_all(conn))
@@ -16,6 +18,7 @@ def list_items():
 
 @shopping_list_bp.post("")
 @limiter.limit("30/minute")
+@require_session
 def add_item():
     data = request.get_json(force=True)
     product_id = data.get("product_id")
@@ -34,6 +37,7 @@ def add_item():
 
 @shopping_list_bp.patch("/<int:item_id>")
 @limiter.limit("120/minute")
+@require_session
 def update_item(item_id):
     data = request.get_json(force=True)
     if "quantity" not in data and "checked" not in data:
@@ -55,6 +59,7 @@ def update_item(item_id):
 
 @shopping_list_bp.delete("/<int:item_id>")
 @limiter.limit("60/minute")
+@require_session
 def delete_item(item_id):
     conn = get_db(current_app.config["DATABASE_PATH"])
     shopping_list_repo.delete(conn, item_id)

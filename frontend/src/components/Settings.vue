@@ -32,7 +32,10 @@ async function testConnection() {
   testing.value = true
   testResult.value = null
   try {
-    const res = await fetch(apiUrl('/api/list'))
+    // /api/profiles rather than /api/list - the latter now requires a
+    // session (see #29), but this check also runs from the login screen's
+    // Server settings escape hatch, before any session exists.
+    const res = await fetch(apiUrl('/api/profiles'))
     testResult.value = res.ok
       ? { ok: true, message: `Connected (status ${res.status})` }
       : { ok: false, message: `Server responded with status ${res.status}` }
