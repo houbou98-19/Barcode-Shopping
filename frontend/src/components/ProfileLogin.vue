@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { apiUrl, setSession } from '../api'
+import AppLogo from './AppLogo.vue'
 import BarcodeAvatar from './BarcodeAvatar.vue'
 import Settings from './Settings.vue'
 
@@ -116,6 +117,7 @@ onMounted(loadProfiles)
   </div>
 
   <div v-else class="login-screen">
+    <AppLogo :width="180" :height="72" />
     <h1>Who's shopping?</h1>
 
     <p v-if="loadError" class="hint error">{{ loadError }}</p>
