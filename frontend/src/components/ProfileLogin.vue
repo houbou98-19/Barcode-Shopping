@@ -1,6 +1,8 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { apiUrl, setSession } from '../api'
+import AppLogo from './AppLogo.vue'
+import BarcodeAvatar from './BarcodeAvatar.vue'
 import Settings from './Settings.vue'
 
 const emit = defineEmits(['login'])
@@ -115,6 +117,7 @@ onMounted(loadProfiles)
   </div>
 
   <div v-else class="login-screen">
+    <AppLogo :width="180" :height="72" />
     <h1>Who's shopping?</h1>
 
     <p v-if="loadError" class="hint error">{{ loadError }}</p>
@@ -124,6 +127,7 @@ onMounted(loadProfiles)
 
     <div v-if="!selected && !creating" class="profile-grid">
       <button v-for="p in profiles" :key="p.id" class="profile-btn" @click="choose(p)">
+        <span class="avatar"><BarcodeAvatar :name="p.name" /></span>
         {{ p.name }}
       </button>
       <button class="profile-btn profile-btn-new" @click="creating = true">+ New profile</button>
@@ -184,6 +188,10 @@ onMounted(loadProfiles)
 }
 
 .profile-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
   padding: 16px 20px;
   border-radius: 12px;
   border: 1px solid var(--border);
@@ -192,6 +200,12 @@ onMounted(loadProfiles)
   font-weight: 600;
   cursor: pointer;
   box-shadow: var(--shadow);
+}
+
+.avatar {
+  width: 72px;
+  height: 36px;
+  overflow: hidden;
 }
 
 .profile-btn-new {

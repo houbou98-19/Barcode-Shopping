@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { apiFetch, getSession } from './api'
+import BarcodeAvatar from './components/BarcodeAvatar.vue'
 import ProductsBrowser from './components/ProductsBrowser.vue'
 import ProfileLogin from './components/ProfileLogin.vue'
 import Scanner from './components/Scanner.vue'
@@ -108,15 +109,7 @@ function selectView(next) {
   <div v-else class="app">
     <header class="app-header">
       <button class="title-btn" @click="view = 'products'">
-        <svg class="logo" viewBox="0 0 24 24" aria-hidden="true">
-          <rect x="1" y="2" width="2.5" height="20" fill="currentColor" />
-          <rect x="5.5" y="2" width="1.2" height="20" fill="currentColor" />
-          <rect x="8" y="2" width="3" height="20" fill="currentColor" />
-          <rect x="12.5" y="2" width="1.2" height="20" fill="currentColor" />
-          <rect x="15" y="2" width="2" height="20" fill="currentColor" />
-          <rect x="18.5" y="2" width="1.2" height="20" fill="currentColor" />
-          <rect x="21" y="2" width="2" height="20" fill="currentColor" />
-        </svg>
+        <span class="header-avatar"><BarcodeAvatar :name="session.profileName" /></span>
         <h1>Barcode Shopping</h1>
       </button>
     </header>
@@ -268,11 +261,12 @@ function selectView(next) {
   text-align: left;
 }
 
-.logo {
-  width: 22px;
-  height: 22px;
-  color: var(--text);
+.header-avatar {
+  display: inline-block;
+  width: 36px;
+  height: 18px;
   flex-shrink: 0;
+  overflow: hidden;
 }
 
 .app-header h1 {

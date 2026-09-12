@@ -1,0 +1,36 @@
+<!-- Real UPC-A encoding of 072066067083 (HBCS as ASCII digit pairs: H=072 B=066 C=067 S=083) -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#ffffff"/>
+  <g fill="#111111">
+    <rect x="47.0"  y="141" width="4.4"  height="230"/>
+    <rect x="55.8"  y="141" width="4.4"  height="230"/>
+    <rect x="73.4"  y="141" width="8.8"  height="230"/>
+    <rect x="86.6"  y="141" width="4.4"  height="230"/>
+    <rect x="95.4"  y="141" width="13.2" height="230"/>
+    <rect x="113.0" y="141" width="8.8"  height="230"/>
+    <rect x="130.6" y="141" width="4.4"  height="230"/>
+    <rect x="143.8" y="141" width="8.8"  height="230"/>
+    <rect x="165.8" y="141" width="8.8"  height="230"/>
+    <rect x="179.0" y="141" width="4.4"  height="230"/>
+    <rect x="187.8" y="141" width="4.4"  height="230"/>
+    <rect x="196.6" y="141" width="17.6" height="230"/>
+    <rect x="218.6" y="141" width="4.4"  height="230"/>
+    <rect x="227.4" y="141" width="17.6" height="230"/>
+    <rect x="249.4" y="141" width="4.4"  height="230"/>
+    <rect x="258.2" y="141" width="4.4"  height="230"/>
+    <rect x="267.0" y="141" width="13.2" height="230"/>
+    <rect x="289.0" y="141" width="4.4"  height="230"/>
+    <rect x="297.8" y="141" width="4.4"  height="230"/>
+    <rect x="306.6" y="141" width="4.4"  height="230"/>
+    <rect x="328.6" y="141" width="4.4"  height="230"/>
+    <rect x="346.2" y="141" width="4.4"  height="230"/>
+    <rect x="359.4" y="141" width="13.2" height="230"/>
+    <rect x="381.4" y="141" width="4.4"  height="230"/>
+    <rect x="390.2" y="141" width="4.4"  height="230"/>
+    <rect x="403.4" y="141" width="4.4"  height="230"/>
+    <rect x="421.0" y="141" width="4.4"  height="230"/>
+    <rect x="443.0" y="141" width="4.4"  height="230"/>
+    <rect x="451.8" y="141" width="4.4"  height="230"/>
+    <rect x="460.6" y="141" width="4.4"  height="230"/>
+  </g>
+</svg>
