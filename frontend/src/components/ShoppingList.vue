@@ -104,6 +104,20 @@ async function confirmMove(targetListId) {
   await load()
 }
 
+const clearedReceipt = ref(null)
+
+async function onClearCompleted() {
+  fabOpen.value = false
+  const res = await apiFetch(`/api/lists/${activeListId.value}/items/completed`, { method: 'DELETE' })
+  if (!res.ok) {
+    window.alert('Could not clear completed items')
+    return
+  }
+  const cleared = await res.json()
+  await load()
+  if (cleared.length > 0) clearedReceipt.value = cleared
+}
+
 function setSort(key) {
   if (sortKey.value === key) {
     sortDir.value *= -1
@@ -383,6 +397,7 @@ onUnmounted(() => {
         <button @click="onJoinList">Join list</button>
         <button @click="onCreateList">Create list</button>
         <button @click="onMoveItems">Move items across list</button>
+        <button @click="onClearCompleted">Clear completed</button>
       </div>
       <button class="fab" aria-label="List actions" @click="fabOpen = !fabOpen">
         <Transition name="fab-icon" mode="out-in">
@@ -420,6 +435,16 @@ onUnmounted(() => {
           {{ l.name }}
         </button>
         <button class="text-btn" @click="showMoveTarget = false">Cancel</button>
+      </div>
+    </div>
+
+    <div v-if="clearedReceipt" class="overlay" @click.self="clearedReceipt = null">
+      <div class="picker">
+        <h3>Cleared</h3>
+        <ul class="receipt-list">
+          <li v-for="item in clearedReceipt" :key="item.id">{{ item.name }} x{{ item.quantity }}</li>
+        </ul>
+        <button class="chip chip-accent" @click="clearedReceipt = null">OK</button>
       </div>
     </div>
   </div>
@@ -555,6 +580,24 @@ onUnmounted(() => {
 
 .picker-option:hover {
   border-color: var(--accent);
+}
+
+.receipt-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 240px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.receipt-list li {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
 }
 
 .text-btn {
