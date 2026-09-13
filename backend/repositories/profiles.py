@@ -2,6 +2,8 @@ from datetime import datetime, timedelta, timezone
 
 from werkzeug.security import check_password_hash, generate_password_hash
 
+from repositories import lists as lists_repo
+
 MAX_FAILED_ATTEMPTS = 5
 LOCKOUT_MINUTES = 15
 
@@ -62,6 +64,7 @@ def create(conn, name, pin):
         (name, pin_hash),
     )
     conn.commit()
+    lists_repo.create_personal(conn, cur.lastrowid, f"{name}'s list")
     return _public(get_by_id(conn, cur.lastrowid))
 
 
@@ -126,11 +129,29 @@ def clear_lockout(conn, profile_id):
 
 
 def delete(conn, profile_id):
-    """Cascades manually (no ON DELETE CASCADE in schema.sql): removes the
-    profile's sessions (logs them out everywhere) and their shopping list
-    items (their private list ceases to exist along with them) before the
-    profile row itself, since both reference profiles.id."""
+    """Cascades manually (no ON DELETE CASCADE in schema.sql):
+    - sessions: logs them out everywhere.
+    - their memberships: removed from every list they were in; a list left
+      with no members (their personal list, always; a shared list if they
+      were the last one in it) is deleted along with its items.
+    - items they personally added to any list they *don't* end up removing
+      (a shared list other members remain in) - deleted individually so no
+      shopping_list_items.added_by_profile_id is left dangling.
+    - the profile row itself.
+    """
     conn.execute("DELETE FROM sessions WHERE profile_id = ?", (profile_id,))
-    conn.execute("DELETE FROM shopping_list_items WHERE profile_id = ?", (profile_id,))
+
+    list_ids = [
+        row["list_id"]
+        for row in conn.execute(
+            "SELECT list_id FROM list_memberships WHERE profile_id = ?", (profile_id,)
+        ).fetchall()
+    ]
+    conn.execute("DELETE FROM list_memberships WHERE profile_id = ?", (profile_id,))
+    conn.commit()
+    for list_id in list_ids:
+        lists_repo.delete_if_orphaned(conn, list_id)
+
+    conn.execute("DELETE FROM shopping_list_items WHERE added_by_profile_id = ?", (profile_id,))
     conn.execute("DELETE FROM profiles WHERE id = ?", (profile_id,))
     conn.commit()
