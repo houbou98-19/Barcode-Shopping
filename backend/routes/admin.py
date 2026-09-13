@@ -153,7 +153,7 @@ def upload_product_image(product_id):
         return jsonify({"error": "image file is required"}), 400
 
     try:
-        image_path = product_images.save(current_app.config["IMAGE_DIR"], product_id, file)
+        image_path = product_images.save(current_app.config["IMAGE_DIR"], product_id, file.stream)
     except ValueError:
         return jsonify({"error": "not a valid image"}), 400
 

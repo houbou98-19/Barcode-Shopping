@@ -42,6 +42,12 @@ const newCategory = ref('')
 const newImageFile = ref(null)
 const newImagePreviewUrl = ref('')
 const prefilledFromLookup = ref(false)
+// Open Food Facts's own image for this barcode (issue #58) - a manually
+// picked photo (newImageFile) always takes priority over this if the user
+// chooses one, and this can be dismissed on its own without touching the
+// manual picker.
+const offImageUrl = ref('')
+const offImageRejected = ref(false)
 
 function onImageSelected(event) {
   const file = event.target.files[0]
@@ -56,8 +62,14 @@ function clearImageSelection() {
   newImagePreviewUrl.value = ''
 }
 
+function rejectOffImage() {
+  offImageRejected.value = true
+}
+
 async function tryPrefillFromLookup(barcode) {
   prefilledFromLookup.value = false
+  offImageUrl.value = ''
+  offImageRejected.value = false
   try {
     const res = await apiFetch(`/api/products/lookup/${encodeURIComponent(barcode)}`)
     const data = await res.json()
@@ -65,6 +77,7 @@ async function tryPrefillFromLookup(barcode) {
       newName.value = data.name
       newCategory.value = data.category || ''
       prefilledFromLookup.value = true
+      offImageUrl.value = data.image_url || ''
     }
   } catch {
     // Silent - the instance may have lookup disabled, or Open Food Facts is
@@ -128,20 +141,31 @@ async function createAndAdd() {
     const product = await res.json()
     const name = newName.value
     const imageFile = newImageFile.value
+    // A manually picked photo always wins over the OFF one if both exist.
+    const useOffImage = !imageFile && offImageUrl.value && !offImageRejected.value
+    const offImageUrlToUse = offImageUrl.value
     newName.value = ''
     newCategory.value = ''
     clearImageSelection()
+    offImageUrl.value = ''
+    offImageRejected.value = false
 
-    if (imageFile) {
-      // Best-effort: a failed photo upload shouldn't block adding the item
-      // itself - the product just ends up with no thumbnail yet.
-      try {
+    // Best-effort: a failed photo save shouldn't block adding the item
+    // itself - the product just ends up with no thumbnail yet.
+    try {
+      if (imageFile) {
         const formData = new FormData()
         formData.append('image', imageFile)
         await apiFetch(`/api/products/${product.id}/image`, { method: 'POST', body: formData })
-      } catch {
-        // ignored - see above
+      } else if (useOffImage) {
+        await apiFetch(`/api/products/${product.id}/image-from-url`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: offImageUrlToUse }),
+        })
       }
+    } catch {
+      // ignored - see above
     }
 
     await addToList(product.id, name)
@@ -157,6 +181,8 @@ function scanAgain() {
   matches.value = []
   message.value = ''
   prefilledFromLookup.value = false
+  offImageUrl.value = ''
+  offImageRejected.value = false
   clearImageSelection()
 }
 
@@ -206,7 +232,18 @@ function selectView(next) {
             <input v-model="newCategory" placeholder="Category (optional)" />
           </div>
           <div class="photo-row">
-            <img v-if="newImagePreviewUrl" :src="newImagePreviewUrl" alt="" class="photo-preview" />
+            <img
+              v-if="newImagePreviewUrl"
+              :src="newImagePreviewUrl"
+              alt=""
+              class="photo-preview"
+            />
+            <img
+              v-else-if="offImageUrl && !offImageRejected"
+              :src="offImageUrl"
+              alt=""
+              class="photo-preview"
+            />
             <label class="btn btn-secondary photo-picker">
               {{ newImageFile ? 'Change photo' : 'Add photo (optional)' }}
               <input type="file" accept="image/*" class="photo-input" @change="onImageSelected" />
@@ -214,7 +251,17 @@ function selectView(next) {
             <button v-if="newImageFile" class="btn btn-secondary" @click="clearImageSelection">
               Remove
             </button>
+            <button
+              v-else-if="offImageUrl && !offImageRejected"
+              class="btn btn-secondary"
+              @click="rejectOffImage"
+            >
+              Don't use this photo
+            </button>
           </div>
+          <p v-if="!newImageFile && offImageUrl && !offImageRejected" class="hint muted">
+            Photo from Open Food Facts &mdash; pick your own above to replace it.
+          </p>
           <button class="btn btn-primary" @click="createAndAdd">Add &amp; add to list</button>
         </div>
 
