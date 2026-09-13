@@ -75,6 +75,32 @@ def delete(conn, item_id):
     conn.commit()
 
 
+def get_checked(conn, list_id):
+    rows = conn.execute(
+        """
+        SELECT shopping_list_items.*, products.name
+        FROM shopping_list_items
+        JOIN products ON products.id = shopping_list_items.product_id
+        WHERE shopping_list_items.list_id = ? AND shopping_list_items.checked = 1
+        ORDER BY shopping_list_items.added_at
+        """,
+        (list_id,),
+    ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def delete_checked(conn, list_id):
+    """Returns the deleted rows (name + quantity) so the caller can show a
+    receipt of what was cleared - the whole point of this over deleting
+    items one at a time."""
+    cleared = get_checked(conn, list_id)
+    conn.execute(
+        "DELETE FROM shopping_list_items WHERE list_id = ? AND checked = 1", (list_id,)
+    )
+    conn.commit()
+    return cleared
+
+
 def move_items(conn, item_ids, target_list_id):
     """Same merge rule as create(): an unchecked item moving into a list
     that already has an unchecked entry for the same product merges into

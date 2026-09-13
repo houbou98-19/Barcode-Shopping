@@ -140,6 +140,19 @@ def move_items(target_list_id):
     return "", 204
 
 
+@lists_bp.delete("/<int:list_id>/items/completed")
+@require_session
+def clear_completed(list_id):
+    conn = get_db(current_app.config["DATABASE_PATH"])
+    if not lists_repo.is_member(conn, list_id, g.profile_id):
+        return jsonify({"error": "not found"}), 404
+
+    cleared = shopping_list_repo.delete_checked(conn, list_id)
+    if cleared:
+        broadcast("list_updated")
+    return jsonify(cleared)
+
+
 @lists_bp.patch("/<int:list_id>/items/<int:item_id>")
 @limiter.limit("120/minute")
 @require_session
