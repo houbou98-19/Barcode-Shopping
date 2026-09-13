@@ -1,12 +1,17 @@
 <script setup>
 import { ref } from 'vue'
 import { apiFetch, getSession } from './api'
+import AdminPage from './components/AdminPage.vue'
 import BarcodeAvatar from './components/BarcodeAvatar.vue'
 import ProductsBrowser from './components/ProductsBrowser.vue'
 import ProfileLogin from './components/ProfileLogin.vue'
 import Scanner from './components/Scanner.vue'
 import Settings from './components/Settings.vue'
 import ShoppingList from './components/ShoppingList.vue'
+
+// Deliberately not a tab/button anywhere in the regular UI - only reachable
+// by knowing the URL (see issue #32).
+const isAdminRoute = window.location.pathname === '/admin'
 
 const session = ref(getSession())
 
@@ -104,7 +109,9 @@ function selectView(next) {
 </script>
 
 <template>
-  <ProfileLogin v-if="!session" @login="handleLogin" />
+  <AdminPage v-if="isAdminRoute" />
+
+  <ProfileLogin v-else-if="!session" @login="handleLogin" />
 
   <div v-else class="app">
     <header class="app-header">

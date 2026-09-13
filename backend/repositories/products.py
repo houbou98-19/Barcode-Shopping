@@ -25,3 +25,34 @@ def create(conn, barcode, name, category):
     )
     conn.commit()
     return get_by_id(conn, cur.lastrowid)
+
+
+def update(conn, product_id, barcode=None, name=None, category=None):
+    fields = []
+    values = []
+    if barcode is not None:
+        fields.append("barcode = ?")
+        values.append(barcode)
+    if name is not None:
+        fields.append("name = ?")
+        values.append(name)
+    if category is not None:
+        fields.append("category = ?")
+        values.append(category)
+    if not fields:
+        return get_by_id(conn, product_id)
+
+    values.append(product_id)
+    conn.execute(f"UPDATE products SET {', '.join(fields)} WHERE id = ?", values)
+    conn.commit()
+    return get_by_id(conn, product_id)
+
+
+def delete(conn, product_id):
+    """Cascades manually (no ON DELETE CASCADE in schema.sql): removes any
+    shopping_list_items referencing this product first - moderating a bad
+    product entry should also clean up its (now meaningless) references on
+    everyone's lists, not leave them orphaned or block the deletion."""
+    conn.execute("DELETE FROM shopping_list_items WHERE product_id = ?", (product_id,))
+    conn.execute("DELETE FROM products WHERE id = ?", (product_id,))
+    conn.commit()

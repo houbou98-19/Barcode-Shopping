@@ -28,6 +28,23 @@ def get_all(conn):
     return [_public(row) for row in rows]
 
 
+def get_all_admin(conn):
+    """Admin overview shape: still never includes pin_hash, but adds the
+    lockout state a regular profile listing has no business exposing."""
+    rows = conn.execute("SELECT * FROM profiles ORDER BY name").fetchall()
+    return [
+        {
+            "id": row["id"],
+            "name": row["name"],
+            "created_at": row["created_at"],
+            "failed_attempts": row["failed_attempts"],
+            "locked_until": row["locked_until"],
+            "is_locked": is_locked(row),
+        }
+        for row in rows
+    ]
+
+
 def get_by_id(conn, profile_id):
     row = conn.execute("SELECT * FROM profiles WHERE id = ?", (profile_id,)).fetchone()
     return row
@@ -91,3 +108,29 @@ def verify_pin(conn, profile_id, pin):
 
     _register_failure(conn, profile_row)
     return False
+
+
+def reset_pin(conn, profile_id, pin):
+    """Also clears any lockout - a freshly-set PIN shouldn't still be
+    blocked by attempts made against the old one."""
+    pin_hash = generate_password_hash(pin)
+    conn.execute(
+        "UPDATE profiles SET pin_hash = ?, failed_attempts = 0, locked_until = NULL WHERE id = ?",
+        (pin_hash, profile_id),
+    )
+    conn.commit()
+
+
+def clear_lockout(conn, profile_id):
+    _reset_failures(conn, profile_id)
+
+
+def delete(conn, profile_id):
+    """Cascades manually (no ON DELETE CASCADE in schema.sql): removes the
+    profile's sessions (logs them out everywhere) and their shopping list
+    items (their private list ceases to exist along with them) before the
+    profile row itself, since both reference profiles.id."""
+    conn.execute("DELETE FROM sessions WHERE profile_id = ?", (profile_id,))
+    conn.execute("DELETE FROM shopping_list_items WHERE profile_id = ?", (profile_id,))
+    conn.execute("DELETE FROM profiles WHERE id = ?", (profile_id,))
+    conn.commit()
