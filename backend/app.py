@@ -17,12 +17,20 @@ STATIC_DIR = os.environ.get("STATIC_DIR", os.path.join(os.path.dirname(__file__)
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
 # Defaults to sitting next to the database, so it lands on the same persistent volume without needing its own env var to remember to set.
 SETTINGS_PATH = os.environ.get("SETTINGS_PATH", os.path.join(os.path.dirname(DB_PATH), "settings.json"))
+# Product photo thumbnails (issue #33) - same reasoning as SETTINGS_PATH:
+# defaults next to the database so it's on the same persistent volume.
+IMAGE_DIR = os.environ.get("PRODUCT_IMAGE_DIR", os.path.join(os.path.dirname(DB_PATH), "product-images"))
 
 
 def create_app():
     app = Flask(__name__, static_folder=STATIC_DIR, static_url_path="")
     app.config["DATABASE_PATH"] = DB_PATH
     app.config["ADMIN_PASSWORD"] = ADMIN_PASSWORD
+    app.config["IMAGE_DIR"] = IMAGE_DIR
+    # Photo uploads (issue #33) are the only endpoint accepting a file, and
+    # get downsized to a small thumbnail server-side anyway - no legitimate
+    # request needs to be bigger than this.
+    app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
 
     # Any origin, not just a configured one: the app is reachable from
     # wherever a user points Settings > Server URL (the native app's local
@@ -36,6 +44,7 @@ def create_app():
     # individual write routes opt in to their own limit via @limiter.limit(...).
     limiter.init_app(app)
 
+    os.makedirs(IMAGE_DIR, exist_ok=True)
     init_db(DB_PATH)
     # Off by default: Has to be something an admin turns on from /admin
     settings_store.init(SETTINGS_PATH, defaults={"off_lookup_enabled": False})

@@ -39,7 +39,22 @@ const matches = ref([])
 const message = ref('')
 const newName = ref('')
 const newCategory = ref('')
+const newImageFile = ref(null)
+const newImagePreviewUrl = ref('')
 const prefilledFromLookup = ref(false)
+
+function onImageSelected(event) {
+  const file = event.target.files[0]
+  if (newImagePreviewUrl.value) URL.revokeObjectURL(newImagePreviewUrl.value)
+  newImageFile.value = file || null
+  newImagePreviewUrl.value = file ? URL.createObjectURL(file) : ''
+}
+
+function clearImageSelection() {
+  if (newImagePreviewUrl.value) URL.revokeObjectURL(newImagePreviewUrl.value)
+  newImageFile.value = null
+  newImagePreviewUrl.value = ''
+}
 
 async function tryPrefillFromLookup(barcode) {
   prefilledFromLookup.value = false
@@ -112,8 +127,23 @@ async function createAndAdd() {
     if (!res.ok) throw new Error()
     const product = await res.json()
     const name = newName.value
+    const imageFile = newImageFile.value
     newName.value = ''
     newCategory.value = ''
+    clearImageSelection()
+
+    if (imageFile) {
+      // Best-effort: a failed photo upload shouldn't block adding the item
+      // itself - the product just ends up with no thumbnail yet.
+      try {
+        const formData = new FormData()
+        formData.append('image', imageFile)
+        await apiFetch(`/api/products/${product.id}/image`, { method: 'POST', body: formData })
+      } catch {
+        // ignored - see above
+      }
+    }
+
     await addToList(product.id, name)
   } catch {
     status.value = 'error'
@@ -127,6 +157,7 @@ function scanAgain() {
   matches.value = []
   message.value = ''
   prefilledFromLookup.value = false
+  clearImageSelection()
 }
 
 function selectView(next) {
@@ -173,6 +204,16 @@ function selectView(next) {
           <div class="form-row">
             <input v-model="newName" placeholder="Product name" />
             <input v-model="newCategory" placeholder="Category (optional)" />
+          </div>
+          <div class="photo-row">
+            <img v-if="newImagePreviewUrl" :src="newImagePreviewUrl" alt="" class="photo-preview" />
+            <label class="btn btn-secondary photo-picker">
+              {{ newImageFile ? 'Change photo' : 'Add photo (optional)' }}
+              <input type="file" accept="image/*" class="photo-input" @change="onImageSelected" />
+            </label>
+            <button v-if="newImageFile" class="btn btn-secondary" @click="clearImageSelection">
+              Remove
+            </button>
           </div>
           <button class="btn btn-primary" @click="createAndAdd">Add &amp; add to list</button>
         </div>
@@ -362,6 +403,34 @@ body.barcode-scanner-active .scan-view {
   border-radius: 8px;
   background: var(--bg);
   color: var(--text);
+}
+
+.photo-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.photo-preview {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.photo-picker {
+  position: relative;
+  cursor: pointer;
+}
+
+.photo-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
 }
 
 .choice-list {

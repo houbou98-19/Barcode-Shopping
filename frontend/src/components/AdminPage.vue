@@ -16,6 +16,10 @@ const products = ref([])
 const lists = ref([])
 const settings = ref({ off_lookup_enabled: false })
 const settingsSaving = ref(false)
+// Bumped on every image upload and appended as a query param on thumbnail
+// URLs - the URL itself never changes on re-upload, so without this the
+// browser would keep showing its cached (now stale) copy.
+const imageVersion = ref(0)
 
 function adminFetch(path, options = {}) {
   return fetch(apiUrl(path), {
@@ -141,6 +145,25 @@ async function deleteProduct(product) {
   if (res.ok) await loadAll()
   else window.alert('Could not delete product')
 }
+
+async function uploadProductImage(event, product) {
+  const file = event.target.files[0]
+  event.target.value = '' // allow re-selecting the same file next time
+  if (!file) return
+
+  const formData = new FormData()
+  formData.append('image', file)
+  const res = await adminFetch(`/api/admin/products/${product.id}/image`, {
+    method: 'POST',
+    body: formData,
+  })
+  if (res.ok) {
+    imageVersion.value++
+    await loadAll()
+  } else {
+    window.alert('Could not upload image')
+  }
+}
 </script>
 
 <template>
@@ -240,6 +263,7 @@ async function deleteProduct(product) {
         <table>
           <thead>
             <tr>
+              <th>Photo</th>
               <th>Name</th>
               <th>Category</th>
               <th>Barcode</th>
@@ -248,11 +272,25 @@ async function deleteProduct(product) {
           </thead>
           <tbody>
             <tr v-for="p in products" :key="p.id">
+              <td>
+                <img
+                  :src="`${apiUrl('/api/products/' + p.id + '/image')}?v=${imageVersion}`"
+                  alt=""
+                  class="product-thumb"
+                  style="visibility: hidden"
+                  @error="$event.target.style.visibility = 'hidden'"
+                  @load="$event.target.style.visibility = 'visible'"
+                />
+              </td>
               <td>{{ p.name }}</td>
               <td>{{ p.category || '-' }}</td>
               <td class="barcode">{{ p.barcode }}</td>
               <td class="actions">
                 <button class="btn btn-secondary" @click="editProduct(p)">Edit</button>
+                <label class="btn btn-secondary photo-picker">
+                  Photo
+                  <input type="file" accept="image/*" class="photo-input" @change="uploadProductImage($event, p)" />
+                </label>
                 <button class="btn btn-danger" @click="deleteProduct(p)">Delete</button>
               </td>
             </tr>
@@ -344,6 +382,27 @@ th, td {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
+}
+
+.product-thumb {
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  display: block;
+}
+
+.photo-picker {
+  position: relative;
+  cursor: pointer;
+}
+
+.photo-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
 }
 
 .chip {
