@@ -1,13 +1,9 @@
-"""Instance-wide toggles (currently just off_lookup_enabled) editable live
-from /admin, persisted to a small JSON file rather than the SQLite database -
-there's no need for a real table for a couple of booleans, and this keeps
-the read path a plain in-memory dict instead of a query.
+"""Instance-wide toggles editable live from /admin, persisted to a small JSON file
 
 Loaded once into memory at startup (init) and kept in sync on every write
 (set_bool), so a request never has to touch disk to read a setting. This
-assumes a single process (see Dockerfile: gunicorn runs one worker,
-multiple threads) - if this ever moves to multiple worker processes, each
-would need its own restart (or a poll/reload) to see another worker's
+assumes a single process - if this ever moves to multiple worker processes,
+each would need its own restart (or a poll/reload) to see another worker's
 write, since the in-memory cache wouldn't be shared between them.
 """
 
