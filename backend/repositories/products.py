@@ -27,7 +27,7 @@ def create(conn, barcode, name, category):
     return get_by_id(conn, cur.lastrowid)
 
 
-def update(conn, product_id, barcode=None, name=None, category=None):
+def update(conn, product_id, barcode=None, name=None, category=None, image_path=None):
     fields = []
     values = []
     if barcode is not None:
@@ -39,6 +39,9 @@ def update(conn, product_id, barcode=None, name=None, category=None):
     if category is not None:
         fields.append("category = ?")
         values.append(category)
+    if image_path is not None:
+        fields.append("image_path = ?")
+        values.append(image_path)
     if not fields:
         return get_by_id(conn, product_id)
 

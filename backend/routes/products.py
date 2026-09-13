@@ -1,10 +1,12 @@
 import json
+import os
 import urllib.error
 import urllib.parse
 import urllib.request
 
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, current_app, jsonify, request, send_file
 
+import product_images
 import settings_store
 from db import get_db
 from extensions import limiter
@@ -112,3 +114,41 @@ def lookup_product(barcode):
             "category": category[:CATEGORY_MAX_LENGTH] if category else None,
         }
     )
+
+
+@products_bp.post("/<int:product_id>/image")
+@limiter.limit("20/minute")
+@require_session
+def upload_product_image(product_id):
+    """Accepts a user photo (camera or gallery - issue #33), resizes it to
+    a small thumbnail, and stores it as WebP keyed by product id (not
+    barcode, since barcode isn't unique - see repositories/products.py)."""
+    conn = get_db(current_app.config["DATABASE_PATH"])
+    if products_repo.get_by_id(conn, product_id) is None:
+        return jsonify({"error": "not found"}), 404
+
+    file = request.files.get("image")
+    if file is None or file.filename == "":
+        return jsonify({"error": "image file is required"}), 400
+
+    try:
+        image_path = product_images.save(current_app.config["IMAGE_DIR"], product_id, file)
+    except ValueError:
+        return jsonify({"error": "not a valid image"}), 400
+
+    product = products_repo.update(conn, product_id, image_path=image_path)
+    return jsonify(product)
+
+
+@products_bp.get("/<int:product_id>/image")
+def get_product_image(product_id):
+    """image_path is an internal server-side path, never returned as-is by
+    the API (issue #33) - the frontend always points <img> at this
+    deterministic URL instead and falls back to a placeholder on 404."""
+    conn = get_db(current_app.config["DATABASE_PATH"])
+    product = products_repo.get_by_id(conn, product_id)
+    image_path = product.get("image_path") if product else None
+    if not image_path or not os.path.isfile(image_path):
+        return jsonify({"error": "not found"}), 404
+
+    return send_file(image_path, mimetype="image/webp")

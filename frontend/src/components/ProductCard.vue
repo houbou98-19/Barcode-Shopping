@@ -1,6 +1,6 @@
 <script setup>
-import { computed, ref } from 'vue'
-import { apiFetch } from '../api'
+import { computed, ref, watch } from 'vue'
+import { apiFetch, apiUrl } from '../api'
 import { activeListId } from '../listStore'
 
 const props = defineProps({
@@ -10,6 +10,18 @@ const props = defineProps({
 const emit = defineEmits(['close', 'added'])
 
 const status = ref('idle') // idle | adding | added | error
+const imageFailed = ref(false)
+const imageUrl = computed(() => apiUrl(`/api/products/${props.product.id}/image`))
+
+// This component instance is reused across products (a single v-if, not a
+// v-for), so a failed load for one product must not hide a real image for
+// the next one shown.
+watch(
+  () => props.product.id,
+  () => {
+    imageFailed.value = false
+  }
+)
 
 // added_at is stored as a UTC "YYYY-MM-DD HH:MM:SS" string (SQLite
 // datetime('now'), no timezone suffix) - Date would otherwise parse it
@@ -53,7 +65,14 @@ async function addToList() {
         </svg>
       </button>
 
-      <div class="image-placeholder"></div>
+      <img
+        v-if="!imageFailed"
+        :src="imageUrl"
+        alt=""
+        class="product-image"
+        @error="imageFailed = true"
+      />
+      <div v-else class="image-placeholder"></div>
 
       <h2>{{ product.name }}</h2>
       <p v-if="product.category" class="chip">{{ product.category }}</p>
@@ -136,12 +155,21 @@ async function addToList() {
   height: 18px;
 }
 
-.image-placeholder {
+.image-placeholder,
+.product-image {
   width: 96px;
   height: 96px;
+  border-radius: 12px;
+}
+
+.image-placeholder {
   background: var(--bg);
   border: 1px dashed var(--border);
-  border-radius: 12px;
+}
+
+.product-image {
+  object-fit: cover;
+  border: 1px solid var(--border);
 }
 
 .detail-card h2 {

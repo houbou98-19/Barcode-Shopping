@@ -2,6 +2,7 @@ import re
 
 from flask import Blueprint, current_app, jsonify, request
 
+import product_images
 import settings_store
 from admin_auth import require_admin
 from db import get_db
@@ -123,11 +124,41 @@ def update_product(product_id):
 @require_admin
 def delete_product(product_id):
     conn = get_db(current_app.config["DATABASE_PATH"])
-    if products_repo.get_by_id(conn, product_id) is None:
+    product = products_repo.get_by_id(conn, product_id)
+    if product is None:
         return jsonify({"error": "not found"}), 404
 
     products_repo.delete(conn, product_id)
+    # Moderating a bad product entry should also clean up its thumbnail
+    # (issue #33), not leave an orphaned file behind - same spirit as
+    # products_repo.delete() cascading its shopping_list_items.
+    product_images.delete(product.get("image_path"))
     return "", 204
+
+
+@admin_bp.post("/products/<int:product_id>/image")
+@require_admin
+def upload_product_image(product_id):
+    """Lets an admin replace or add a product's photo directly - e.g. to
+    fix a bad or offensive user-submitted image without deleting and
+    recreating the whole product. Same processing as the profile-facing
+    upload (see product_images.py), just gated by the admin password
+    instead of a profile session."""
+    conn = get_db(current_app.config["DATABASE_PATH"])
+    if products_repo.get_by_id(conn, product_id) is None:
+        return jsonify({"error": "not found"}), 404
+
+    file = request.files.get("image")
+    if file is None or file.filename == "":
+        return jsonify({"error": "image file is required"}), 400
+
+    try:
+        image_path = product_images.save(current_app.config["IMAGE_DIR"], product_id, file)
+    except ValueError:
+        return jsonify({"error": "not a valid image"}), 400
+
+    product = products_repo.update(conn, product_id, image_path=image_path)
+    return jsonify(product)
 
 
 @admin_bp.get("/settings")

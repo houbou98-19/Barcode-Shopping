@@ -12,6 +12,7 @@ backend/instance/
 *.db
 *.sqlite3
 backend/settings.json
+backend/product-images/
 
 # Env / secrets
 .env
