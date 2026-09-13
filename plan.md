@@ -288,18 +288,20 @@ internet-exposed via reverse proxy — this is what the *app* must own:
     the roadmap (§8): v2 completion = `1.2.0`; feature branches merged
     toward v3 bump patch/minor as needed; `1.3.0` marks v3 complete.
   - Android APK build is a separate workflow
-    (`.github/workflows/release.yml`, closes issue #9) — no `paths:`
+    (`.github/workflows/android-apk.yml`, issue #9) — no `paths:`
     filtering between the two, since they build independently regardless.
-- **Release** (`.github/workflows/release.yml`): on push to `main`, builds
-  the frontend, runs `npx cap sync android`, and assembles a debug APK
-  (`./gradlew assembleDebug`) — debug-signed, matching the existing
-  sideload workflow (no release keystore/signing secrets to manage). It
-  then creates a GitHub Release tagged `v<VERSION>` (reading the same root
-  `VERSION` file used for the Docker version tags) with the APK attached
-  as a downloadable release asset and auto-generated release notes. This
-  means the same `dev` → `main` merge that cuts a stable Docker image tag
-  (e.g. `:1.2`) also produces the matching downloadable APK for that
-  version.
+- **Android APK** (`.github/workflows/android-apk.yml`): on every push, to
+  any branch, builds the frontend, runs `npx cap sync android`, and
+  assembles a debug APK (`./gradlew assembleDebug`) — debug-signed, so no
+  release keystore/signing secrets to manage. The APK is always uploaded
+  as a workflow run artifact (`gh run download`, then serve over LAN for
+  phone install — the existing sideload flow for testing feature
+  branches). On push to `main` specifically, it additionally reads the
+  root `VERSION` file (the same one used for the Docker version tags) and
+  creates a GitHub Release tagged `v<VERSION>` with the APK attached as a
+  downloadable release asset and auto-generated release notes — so the
+  same `dev` → `main` merge that cuts a stable Docker image tag (e.g.
+  `:1.2`) also produces the matching downloadable stable APK.
 - **Deployment target**: `docker-compose.yml` runs the image as a container
   on **ZimaOS**, `pull_policy: always` so a normal `docker compose pull &&
   up -d` (not a bare restart, which reuses the cached image) always grabs
