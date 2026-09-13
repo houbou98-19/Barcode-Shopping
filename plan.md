@@ -226,9 +226,10 @@ internet-exposed via reverse proxy — this is what the *app* must own:
 - Per-profile opt-in: each profile stores their own HA base URL, long-lived
   token, and target `todo` entity ID (see `ha_integrations` table). Not a
   hard dependency for using the app.
-- Two-way sync (checking off in HA reflects back to the app) considered but
-  deferred — push-only avoids conflict-resolution complexity for v1 of this
-  feature.
+- Two-way sync (checking off in HA reflects back to the app) is v3 scope
+  alongside push-only (#36) — originally deferred to avoid
+  conflict-resolution complexity, revisited once push-only ships and proves
+  stable.
 
 ## 8. Roadmap
 
@@ -236,8 +237,8 @@ internet-exposed via reverse proxy — this is what the *app* must own:
 |---|---|
 | v1 | Scanning (Capacitor), shared product DB, single shared list, category sorting/grouping, Flask+SQLite backend, Docker Compose deploy, baseline hardening (IP rate limit, CORS, input validation, env secrets) |
 | v2 | Private per-user lists (superseded by multi-list + join codes), profiles, PIN + session tokens |
-| v3 | HA push-only integration, product thumbnail images |
-| Later / optional | Per-profile rate limiting, offline scan queue + sync, k8s manifests/Helm chart, two-way HA sync, instance-wide passphrase as extra gate |
+| v3 | HA push-only + two-way integration, product thumbnail images, optional live product lookup via Open Food Facts API |
+| Later / optional | Per-profile rate limiting, offline scan queue + sync, k8s manifests/Helm chart, instance-wide passphrase as extra gate |
 
 ## 9. Git workflow
 
@@ -275,9 +276,30 @@ internet-exposed via reverse proxy — this is what the *app* must own:
   `:latest` is a moving "most recent build" tag for convenience, not a
   stability guarantee — pin a SHA tag manually for anything that needs to
   stay put.
-  - Android APK build is a separate, not-yet-built workflow (see §8
-    roadmap / issue #9) — no `paths:` filtering between the two, since they
-    build independently regardless.
+  - **Versioned release tags**: a root-level `VERSION` file (e.g. `1.2.0`)
+    is bumped by hand as part of the `dev` → `main` merge for a release.
+    On push to `main` specifically, the workflow additionally tags the
+    image `:<version>` (e.g. `:1.2.0`) and a floating `:<major>.<minor>`
+    (e.g. `:1.2`) alongside `:latest`/`:sha`. This gives a stable pin
+    (`:1.2`) distinct from the constantly-moving `:latest`, so a deployed
+    instance (e.g. ZimaOS) can switch its image tag to `:latest` to try a
+    feature branch, then back to `:1.2` to return to the last stable
+    release, without hunting for a SHA. Versioning follows semver against
+    the roadmap (§8): v2 completion = `1.2.0`; feature branches merged
+    toward v3 bump patch/minor as needed; `1.3.0` marks v3 complete.
+  - Android APK build is a separate workflow
+    (`.github/workflows/release.yml`, closes issue #9) — no `paths:`
+    filtering between the two, since they build independently regardless.
+- **Release** (`.github/workflows/release.yml`): on push to `main`, builds
+  the frontend, runs `npx cap sync android`, and assembles a debug APK
+  (`./gradlew assembleDebug`) — debug-signed, matching the existing
+  sideload workflow (no release keystore/signing secrets to manage). It
+  then creates a GitHub Release tagged `v<VERSION>` (reading the same root
+  `VERSION` file used for the Docker version tags) with the APK attached
+  as a downloadable release asset and auto-generated release notes. This
+  means the same `dev` → `main` merge that cuts a stable Docker image tag
+  (e.g. `:1.2`) also produces the matching downloadable APK for that
+  version.
 - **Deployment target**: `docker-compose.yml` runs the image as a container
   on **ZimaOS**, `pull_policy: always` so a normal `docker compose pull &&
   up -d` (not a bare restart, which reuses the cached image) always grabs
