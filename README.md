@@ -6,8 +6,9 @@ multi-platform (Android, iPhone, PC), no cloud dependency.
 
 ## Status
 
-v1 is deployable and running. See [`plan.md`](plan.md) for the full
-architecture and roadmap.
+v1 and v2 are deployable and running (release `1.2.0`). v3 is in
+progress, see [`plan.md`](plan.md) for the full architecture
+and roadmap.
 
 ## Repo layout
 
@@ -57,12 +58,20 @@ docker compose pull && docker compose up -d
 (a bare restart reuses whatever image is already cached and won't pick up
 a new build).
 
+**Image tags**: `:latest` is whatever was most recently built on *any*
+branch — handy for trying an in-progress feature, but not a stability
+guarantee. Once a release is cut (`dev` merged to `main`), that build is
+also tagged with its version (e.g. `:1.2.0`, and the floating `:1.2`) —
+pin one of those instead of `:latest` for a stable install, and switch
+back to it after trying something newer.
+
 The database (SQLite) persists in the `shopping_data` named volume, so it
 survives container recreation/updates.
 
 **Admin page**: a hidden `/admin` page (no link anywhere in the regular
-app) lets you reset a profile's PIN/lockout, delete a profile, or
-edit/delete products. It's disabled by default; to enable it, set
+app) lets you reset a profile's PIN/lockout, delete a profile, edit/delete
+products, upload or replace a product's photo, and toggle the Open Food
+Facts lookup below on/off. It's disabled by default; to enable it, set
 `ADMIN_PASSWORD` in a `.env` file next to `docker-compose.yml` (Compose
 loads it automatically):
 
@@ -70,6 +79,15 @@ loads it automatically):
 echo "ADMIN_PASSWORD=<a strong password>" > .env
 docker compose up -d
 ```
+
+**Optional: Open Food Facts lookup**. When a scanned barcode isn't found
+locally, the app can look it up against the public
+[Open Food Facts](https://world.openfoodfacts.org/) database to auto-fill
+the product's name, category, and photo instead of leaving it to manual
+entry — a suggested photo can still be swapped for the user's own. This
+makes an outbound call to a third-party service, so it's **off by
+default** in keeping with this project's no-cloud-dependency goal; turn
+it on from the Settings section of `/admin` if you want it.
 
 **Note:** don't rely on Docker's plain default `bridge` network for
 port-publishing — some simplified app-install UIs (e.g. ZimaOS's manual
@@ -110,13 +128,16 @@ location /api/events {
   desktop and Android will offer an "Install app" prompt; on iPhone Safari,
   use Share → "Add to Home Screen".
 - **Android app**: a debug APK is built by CI on every push
-  (`.github/workflows/android-apk.yml`) and available as a workflow run
-  artifact under the repo's Actions tab — no Play Store needed, just
-  sideload it. After install, open Settings in the app and set **Server
-  URL** to your server's address (e.g. `http://192.168.1.10:8080`) — the
-  native app has no browser origin to resolve relative API calls against,
-  so this is required for it specifically (optional for the PWA/web
-  clients, which default to same-origin).
+  (`.github/workflows/android-apk.yml`) — no Play Store needed, just
+  sideload it. For a stable build, grab the APK attached to the latest
+  [GitHub Release](../../releases) (cut from `main`, e.g. `v1.2.0`); for an
+  in-progress feature branch, download it as a workflow run artifact
+  under the repo's Actions tab instead. After install, open Settings in
+  the app and set **Server URL** to your server's address (e.g.
+  `http://192.168.1.10:8080`) — the native app has no browser origin to
+  resolve relative API calls against, so this is required for it
+  specifically (optional for the PWA/web clients, which default to
+  same-origin).
 
 ## License
 
