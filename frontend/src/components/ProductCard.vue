@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { apiFetch } from '../api'
+import { activeListId } from '../listStore'
 
 const props = defineProps({
   product: { type: Object, required: true },
@@ -22,7 +23,7 @@ const addedAtDisplay = computed(() => {
 async function addToList() {
   status.value = 'adding'
   try {
-    const res = await apiFetch('/api/list', {
+    const res = await apiFetch(`/api/lists/${activeListId.value}/items`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ product_id: props.product.id }),

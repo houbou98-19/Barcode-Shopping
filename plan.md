@@ -132,9 +132,32 @@ unreliable, especially on iOS Safari. This plan addresses that directly (see §4
   - `expires_at` (sliding 1-week expiry, refreshed on each authenticated
     use — short enough to cap exposure from a forgotten/stolen device,
     long enough that a weekly shopping cadence never sees a prompt)
-- `shopping_list_items` gains:
-  - `profile_id` (FK → profiles) — list becomes per-user private
-  - `added_by_profile_id` (FK → profiles)
+- `lists`
+  - `id` (PK)
+  - `name`
+  - `join_code` (3-digit numeric, **unique when set**; NULL for a
+    profile's own personal list — structurally not joinable, rather than
+    a flag to check)
+  - `created_by_profile_id` (FK → profiles; only the creator can
+    force-delete a shared list outright, distinct from any member simply
+    leaving it)
+  - `created_at`
+- `list_memberships`
+  - `list_id` (FK → lists)
+  - `profile_id` (FK → profiles)
+  - `joined_at`
+  - *(composite PK on `list_id`+`profile_id`)*
+- `shopping_list_items` (supersedes the v2-only `profile_id`-based private
+  list from an earlier iteration of this section — superseded before ever
+  shipping to end users, per #43):
+  - `list_id` (FK → lists) — which list this item is on
+  - `added_by_profile_id` (FK → profiles) — who added it, distinct from
+    `list_id` once a list can have multiple members (#43)
+  - A profile's own personal list is auto-created (and auto-joined)
+    alongside the profile itself, so every profile always has somewhere
+    to add items without needing a shared list first. A shared list with
+    no members left (everyone left, or the last one deleted) is deleted
+    along with its items — no orphaned lists linger.
 
 ### v3 additions
 - `products.image_path` (nullable) added early, in the v1 schema — column

@@ -13,6 +13,7 @@ const busy = ref(false)
 
 const profiles = ref([])
 const products = ref([])
+const lists = ref([])
 
 function adminFetch(path, options = {}) {
   return fetch(apiUrl(path), {
@@ -22,12 +23,14 @@ function adminFetch(path, options = {}) {
 }
 
 async function loadAll() {
-  const [profilesRes, productsRes] = await Promise.all([
+  const [profilesRes, productsRes, listsRes] = await Promise.all([
     adminFetch('/api/admin/profiles'),
     adminFetch('/api/admin/products'),
+    adminFetch('/api/admin/lists'),
   ])
   profiles.value = await profilesRes.json()
   products.value = await productsRes.json()
+  lists.value = await listsRes.json()
 }
 
 async function login() {
@@ -85,6 +88,18 @@ async function deleteProfile(profile) {
   const res = await adminFetch(`/api/admin/profiles/${profile.id}`, { method: 'DELETE' })
   if (res.ok) await loadAll()
   else window.alert('Could not delete profile')
+}
+
+async function deleteList(list) {
+  if (
+    !window.confirm(
+      `Delete list "${list.name}" for all ${list.member_count} member(s)? This cannot be undone.`
+    )
+  )
+    return
+  const res = await adminFetch(`/api/admin/lists/${list.id}`, { method: 'DELETE' })
+  if (res.ok) await loadAll()
+  else window.alert('Could not delete list')
 }
 
 async function editProduct(product) {
@@ -151,6 +166,32 @@ async function deleteProduct(product) {
                   Clear lockout
                 </button>
                 <button class="btn btn-danger" @click="deleteProfile(p)">Delete</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="card">
+        <h2>Lists</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Code</th>
+              <th>Created by</th>
+              <th>Members</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="l in lists.filter((l) => !l.is_personal)" :key="l.id">
+              <td>{{ l.name }}</td>
+              <td class="barcode">{{ l.join_code }}</td>
+              <td>{{ l.created_by_name }}</td>
+              <td>{{ l.member_count }}</td>
+              <td class="actions">
+                <button class="btn btn-danger" @click="deleteList(l)">Delete</button>
               </td>
             </tr>
           </tbody>

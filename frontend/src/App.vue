@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { apiFetch, getSession } from './api'
 import AdminPage from './components/AdminPage.vue'
 import BarcodeAvatar from './components/BarcodeAvatar.vue'
@@ -8,6 +8,7 @@ import ProfileLogin from './components/ProfileLogin.vue'
 import Scanner from './components/Scanner.vue'
 import Settings from './components/Settings.vue'
 import ShoppingList from './components/ShoppingList.vue'
+import { activeListId, loadLists } from './listStore'
 
 // Deliberately not a tab/button anywhere in the regular UI - only reachable
 // by knowing the URL (see issue #32).
@@ -15,13 +16,20 @@ const isAdminRoute = window.location.pathname === '/admin'
 
 const session = ref(getSession())
 
-function handleLogin() {
+async function handleLogin() {
   session.value = getSession()
+  await loadLists()
 }
 
 function handleLoggedOut() {
   session.value = null
 }
+
+onMounted(() => {
+  // Page reload while already logged in - handleLogin's flow doesn't run,
+  // so the active list still needs to be resolved here.
+  if (session.value) loadLists()
+})
 
 const view = ref('scan') // 'scan' | 'list' | 'products' | 'settings'
 
@@ -56,7 +64,7 @@ async function handleScan(barcode) {
 async function addToList(productId, productName) {
   status.value = 'loading'
   try {
-    const res = await apiFetch('/api/list', {
+    const res = await apiFetch(`/api/lists/${activeListId.value}/items`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ product_id: productId }),

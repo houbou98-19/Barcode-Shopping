@@ -4,6 +4,7 @@ from flask import Blueprint, current_app, jsonify, request
 
 from admin_auth import require_admin
 from db import get_db
+from repositories import lists as lists_repo
 from repositories import products as products_repo
 from repositories import profiles as profiles_repo
 
@@ -57,6 +58,24 @@ def delete_profile(profile_id):
         return jsonify({"error": "not found"}), 404
 
     profiles_repo.delete(conn, profile_id)
+    return "", 204
+
+
+@admin_bp.get("/lists")
+@require_admin
+def list_lists():
+    conn = get_db(current_app.config["DATABASE_PATH"])
+    return jsonify(lists_repo.get_all_admin(conn))
+
+
+@admin_bp.delete("/lists/<int:list_id>")
+@require_admin
+def delete_list(list_id):
+    conn = get_db(current_app.config["DATABASE_PATH"])
+    if lists_repo.get_by_id(conn, list_id) is None:
+        return jsonify({"error": "not found"}), 404
+
+    lists_repo.delete(conn, list_id)
     return "", 204
 
 

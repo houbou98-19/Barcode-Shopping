@@ -1,4 +1,4 @@
-def get_all(conn, profile_id):
+def get_all(conn, list_id):
     rows = conn.execute(
         """
         SELECT shopping_list_items.*, products.name, products.category, products.barcode,
@@ -6,10 +6,10 @@ def get_all(conn, profile_id):
         FROM shopping_list_items
         JOIN products ON products.id = shopping_list_items.product_id
         JOIN profiles ON profiles.id = shopping_list_items.added_by_profile_id
-        WHERE shopping_list_items.profile_id = ?
+        WHERE shopping_list_items.list_id = ?
         ORDER BY shopping_list_items.added_at
         """,
-        (profile_id,),
+        (list_id,),
     ).fetchall()
     return [dict(row) for row in rows]
 
@@ -24,30 +24,29 @@ def product_exists(conn, product_id):
     return row is not None
 
 
-def get_unchecked_by_product(conn, product_id, profile_id):
+def get_unchecked_by_product(conn, product_id, list_id):
     row = conn.execute(
-        "SELECT * FROM shopping_list_items WHERE product_id = ? AND profile_id = ? AND checked = 0",
-        (product_id, profile_id),
+        "SELECT * FROM shopping_list_items WHERE product_id = ? AND list_id = ? AND checked = 0",
+        (product_id, list_id),
     ).fetchone()
     return dict(row) if row else None
 
 
-def create(conn, product_id, quantity, profile_id):
+def create(conn, product_id, quantity, list_id, added_by_profile_id):
     """Merges into an existing unchecked entry for the same product on the
-    same profile's list (bumps its quantity) instead of creating a
-    duplicate row. A re-scan of a product that's already checked off
-    starts a fresh entry instead, since that means "need to buy again",
-    not "add more to this trip". added_by_profile_id also gets profile_id
-    for now - it's the same person by construction until lists can be
-    shared (#43)."""
-    existing = get_unchecked_by_product(conn, product_id, profile_id)
+    same list (bumps its quantity) instead of creating a duplicate row,
+    regardless of which member added either one - it's one shared list. A
+    re-scan of a product that's already checked off starts a fresh entry
+    instead, since that means "need to buy again", not "add more to this
+    trip"."""
+    existing = get_unchecked_by_product(conn, product_id, list_id)
     if existing is not None:
         return update(conn, existing["id"], quantity=existing["quantity"] + quantity)
 
     cur = conn.execute(
-        "INSERT INTO shopping_list_items (product_id, quantity, profile_id, added_by_profile_id) "
+        "INSERT INTO shopping_list_items (product_id, quantity, list_id, added_by_profile_id) "
         "VALUES (?, ?, ?, ?)",
-        (product_id, quantity, profile_id, profile_id),
+        (product_id, quantity, list_id, added_by_profile_id),
     )
     conn.commit()
     return get_by_id(conn, cur.lastrowid)
@@ -73,4 +72,28 @@ def update(conn, item_id, quantity=None, checked=None):
 
 def delete(conn, item_id):
     conn.execute("DELETE FROM shopping_list_items WHERE id = ?", (item_id,))
+    conn.commit()
+
+
+def move_items(conn, item_ids, target_list_id):
+    """Same merge rule as create(): an unchecked item moving into a list
+    that already has an unchecked entry for the same product merges into
+    it (bumping quantity) instead of creating a duplicate row. A checked
+    item moves over as-is - it represents a separate, already-completed
+    entry, not more of what's still needed."""
+    for item_id in item_ids:
+        item = get_by_id(conn, item_id)
+        if item is None or item["list_id"] == target_list_id:
+            continue
+
+        if not item["checked"]:
+            existing = get_unchecked_by_product(conn, item["product_id"], target_list_id)
+            if existing is not None:
+                update(conn, existing["id"], quantity=existing["quantity"] + item["quantity"])
+                delete(conn, item_id)
+                continue
+
+        conn.execute(
+            "UPDATE shopping_list_items SET list_id = ? WHERE id = ?", (target_list_id, item_id)
+        )
     conn.commit()
