@@ -2,6 +2,7 @@ import re
 
 from flask import Blueprint, current_app, jsonify, request
 
+import settings_store
 from admin_auth import require_admin
 from db import get_db
 from repositories import lists as lists_repo
@@ -127,3 +128,21 @@ def delete_product(product_id):
 
     products_repo.delete(conn, product_id)
     return "", 204
+
+
+@admin_bp.get("/settings")
+@require_admin
+def get_settings():
+    return jsonify({"off_lookup_enabled": settings_store.get_bool("off_lookup_enabled", default=False)})
+
+
+@admin_bp.patch("/settings")
+@require_admin
+def update_settings():
+    data = request.get_json(force=True)
+    if "off_lookup_enabled" not in data:
+        return jsonify({"error": "off_lookup_enabled is required"}), 400
+
+    enabled = bool(data["off_lookup_enabled"])
+    settings_store.set_bool("off_lookup_enabled", enabled)
+    return jsonify({"off_lookup_enabled": enabled})

@@ -39,6 +39,23 @@ const matches = ref([])
 const message = ref('')
 const newName = ref('')
 const newCategory = ref('')
+const prefilledFromLookup = ref(false)
+
+async function tryPrefillFromLookup(barcode) {
+  prefilledFromLookup.value = false
+  try {
+    const res = await apiFetch(`/api/products/lookup/${encodeURIComponent(barcode)}`)
+    const data = await res.json()
+    if (data.available) {
+      newName.value = data.name
+      newCategory.value = data.category || ''
+      prefilledFromLookup.value = true
+    }
+  } catch {
+    // Silent - the instance may have lookup disabled, or Open Food Facts is
+    // unreachable. Manual entry works fine either way.
+  }
+}
 
 async function handleScan(barcode) {
   scannedBarcode.value = barcode
@@ -50,6 +67,7 @@ async function handleScan(barcode) {
     matches.value = products
     if (products.length === 0) {
       status.value = 'create'
+      await tryPrefillFromLookup(barcode)
     } else if (products.length === 1) {
       await addToList(products[0].id, products[0].name)
     } else {
@@ -108,6 +126,7 @@ function scanAgain() {
   scannedBarcode.value = null
   matches.value = []
   message.value = ''
+  prefilledFromLookup.value = false
 }
 
 function selectView(next) {
@@ -148,6 +167,9 @@ function selectView(next) {
 
         <div v-if="status === 'create'" class="card">
           <p>No product found for barcode <code>{{ scannedBarcode }}</code>. Add it:</p>
+          <p v-if="prefilledFromLookup" class="hint muted">
+            Auto-filled from Open Food Facts &mdash; check before saving.
+          </p>
           <div class="form-row">
             <input v-model="newName" placeholder="Product name" />
             <input v-model="newCategory" placeholder="Category (optional)" />

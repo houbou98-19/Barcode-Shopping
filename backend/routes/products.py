@@ -1,5 +1,11 @@
+import json
+import urllib.error
+import urllib.parse
+import urllib.request
+
 from flask import Blueprint, current_app, jsonify, request
 
+import settings_store
 from db import get_db
 from extensions import limiter
 from repositories import products as products_repo
@@ -10,6 +16,9 @@ products_bp = Blueprint("products", __name__, url_prefix="/api/products")
 BARCODE_MAX_LENGTH = 64
 NAME_MAX_LENGTH = 200
 CATEGORY_MAX_LENGTH = 100
+
+OFF_LOOKUP_URL = "https://world.openfoodfacts.org/api/v2/product/{barcode}.json?fields=product_name,categories_tags"
+OFF_LOOKUP_TIMEOUT_SECONDS = 3
 
 
 @products_bp.get("")
@@ -57,3 +66,49 @@ def get_products_by_barcode(barcode):
     legitimately match more than one product (see repositories/products.py)."""
     conn = get_db(current_app.config["DATABASE_PATH"])
     return jsonify(products_repo.get_by_barcode(conn, barcode))
+
+
+@products_bp.get("/lookup/<barcode>")
+@limiter.limit("20/minute")
+def lookup_product(barcode):
+    """Live per-scan lookup against Open Food Facts for a barcode not found
+    locally (issue #44) - never touches the database, just hands back a
+    name/category to prefill the manual-entry form with. Opt-in via the
+    off_lookup_enabled setting, toggled from /admin - off by default, and
+    when it's off or the lookup fails for any reason, this responds as
+    "nothing found" rather than an error, since manual entry always works
+    as the fallback either way."""
+    not_found = jsonify({"available": False}), 200
+    if not settings_store.get_bool("off_lookup_enabled", default=False):
+        return not_found
+
+    url = OFF_LOOKUP_URL.format(barcode=urllib.parse.quote(barcode, safe=""))
+    try:
+        with urllib.request.urlopen(url, timeout=OFF_LOOKUP_TIMEOUT_SECONDS) as response:
+            payload = json.load(response)
+    except (urllib.error.URLError, TimeoutError, ValueError, OSError):
+        return not_found
+
+    if payload.get("status") != 1:
+        return not_found
+
+    product = payload.get("product") or {}
+    name = (product.get("product_name") or "").strip()
+    if not name:
+        return not_found
+
+    # Open Food Facts categories are most-general-first (e.g.
+    # "en:snacks", "en:sweet-snacks", "en:biscuits") - the last tag is the
+    # most specific, closest match to this app's single free-text category.
+    categories = product.get("categories_tags") or []
+    category = None
+    if categories:
+        category = categories[-1].split(":")[-1].replace("-", " ").title()
+
+    return jsonify(
+        {
+            "available": True,
+            "name": name[:NAME_MAX_LENGTH],
+            "category": category[:CATEGORY_MAX_LENGTH] if category else None,
+        }
+    )
