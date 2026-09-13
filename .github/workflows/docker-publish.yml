@@ -24,10 +24,24 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Determine tags
+        id: tags
+        run: |
+          {
+            echo "tags<<EOF"
+            echo "${{ env.IMAGE }}:latest"
+            echo "${{ env.IMAGE }}:${{ github.sha }}"
+            if [ "${{ github.ref_name }}" = "main" ]; then
+              VERSION="$(cat VERSION)"
+              MAJOR_MINOR="$(echo "$VERSION" | cut -d. -f1,2)"
+              echo "${{ env.IMAGE }}:$VERSION"
+              echo "${{ env.IMAGE }}:$MAJOR_MINOR"
+            fi
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - uses: docker/build-push-action@v6
         with:
           context: .
           push: true
-          tags: |
-            ${{ env.IMAGE }}:latest
-            ${{ env.IMAGE }}:${{ github.sha }}
+          tags: ${{ steps.tags.outputs.tags }}
