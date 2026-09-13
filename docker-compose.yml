@@ -4,6 +4,8 @@ services:
     pull_policy: always
     ports:
       - "8080:5000"
+    environment:
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
     volumes:
       - shopping_data:/data
     networks:

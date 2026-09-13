@@ -6,17 +6,20 @@ from flask_cors import CORS
 from db import close_db, init_db
 from events import subscribe
 from extensions import limiter
+from routes.admin import admin_bp
 from routes.auth import auth_bp
 from routes.products import products_bp
 from routes.shopping_list import shopping_list_bp
 
 DB_PATH = os.environ.get("DATABASE_PATH", os.path.join(os.path.dirname(__file__), "shopping.db"))
 STATIC_DIR = os.environ.get("STATIC_DIR", os.path.join(os.path.dirname(__file__), "static"))
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
 
 
 def create_app():
     app = Flask(__name__, static_folder=STATIC_DIR, static_url_path="")
     app.config["DATABASE_PATH"] = DB_PATH
+    app.config["ADMIN_PASSWORD"] = ADMIN_PASSWORD
 
     # Any origin, not just a configured one: the app is reachable from
     # wherever a user points Settings > Server URL (the native app's local
@@ -33,6 +36,7 @@ def create_app():
     init_db(DB_PATH)
     app.teardown_appcontext(close_db)
 
+    app.register_blueprint(admin_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(products_bp)
     app.register_blueprint(shopping_list_bp)

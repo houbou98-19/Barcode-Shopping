@@ -25,6 +25,8 @@ services:
     pull_policy: always
     ports:
       - "8080:5000"
+    environment:
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
     volumes:
       - shopping_data:/data
     networks:
@@ -57,6 +59,17 @@ a new build).
 
 The database (SQLite) persists in the `shopping_data` named volume, so it
 survives container recreation/updates.
+
+**Admin page**: a hidden `/admin` page (no link anywhere in the regular
+app) lets you reset a profile's PIN/lockout, delete a profile, or
+edit/delete products. It's disabled by default; to enable it, set
+`ADMIN_PASSWORD` in a `.env` file next to `docker-compose.yml` (Compose
+loads it automatically):
+
+```sh
+echo "ADMIN_PASSWORD=<a strong password>" > .env
+docker compose up -d
+```
 
 **Note:** don't rely on Docker's plain default `bridge` network for
 port-publishing — some simplified app-install UIs (e.g. ZimaOS's manual
