@@ -26,11 +26,8 @@ OFF_LOOKUP_URL = (
 )
 OFF_LOOKUP_TIMEOUT_SECONDS = 3
 
-# issue #58: only ever fetch an "OFF image" from Open Food Facts's own
-# image host - the URL in the lookup response is server-picked (from the
-# fields above), but upload_product_image_from_url takes a URL back from
-# the client, so this allowlist is what stops that from being an SSRF
-# vector to fetch arbitrary attacker-chosen URLs through this server.
+# set_product_image_from_url takes a URL back from the client - this
+# allowlist is what stops that from being an SSRF vector.
 OFF_IMAGE_HOSTS = {"images.openfoodfacts.org", "static.openfoodfacts.org"}
 OFF_IMAGE_DOWNLOAD_TIMEOUT_SECONDS = 5
 OFF_IMAGE_MAX_BYTES = 10 * 1024 * 1024
@@ -120,10 +117,9 @@ def lookup_product(barcode):
     if categories:
         category = categories[-1].split(":")[-1].replace("-", " ").title()
 
-    # issue #58: hand back whichever image OFF has, so the frontend can
-    # preview it and (on save) ask this server to fetch and store it -
-    # not the image bytes themselves, since there's nowhere to put them
-    # until a product id exists.
+    # Just the URL, not the bytes - there's no product id yet to store an
+    # image against, so the frontend previews this directly and the
+    # server fetches it later once the product is actually created.
     image_url = product.get("image_front_url") or product.get("image_url") or None
 
     return jsonify(
@@ -164,11 +160,8 @@ def upload_product_image(product_id):
 @limiter.limit("20/minute")
 @require_session
 def set_product_image_from_url(product_id):
-    """Fetches and stores the Open Food Facts image offered by /lookup
-    (issue #58), once a product id actually exists to store it against.
-    Only ever fetches from OFF's own image host (see OFF_IMAGE_HOSTS) -
-    the URL comes back from the client, so this isn't a way to make this
-    server fetch an arbitrary attacker-chosen URL."""
+    """Fetches and stores the image URL offered by /lookup, now that a
+    product id exists to store it against (see OFF_IMAGE_HOSTS)."""
     conn = get_db(current_app.config["DATABASE_PATH"])
     if products_repo.get_by_id(conn, product_id) is None:
         return jsonify({"error": "not found"}), 404

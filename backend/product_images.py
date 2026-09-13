@@ -17,11 +17,10 @@ QUALITY = 65
 
 
 def save(image_dir, product_id, stream):
-    """Resizes a photo (an uploaded file's .stream, or any other readable
-    binary stream - e.g. a downloaded Open Food Facts image, see issue
-    #58) to a small thumbnail and stores it as WebP keyed by product id
-    (not barcode - see repositories/products.py). Returns the path
-    written. Raises ValueError if it isn't a real image."""
+    """Resizes a photo from any readable binary stream to a small
+    thumbnail and stores it as WebP keyed by product id (not barcode -
+    see repositories/products.py). Returns the path written. Raises
+    ValueError if it isn't a real image."""
     try:
         image = Image.open(stream)
         image.load()

@@ -42,10 +42,6 @@ const newCategory = ref('')
 const newImageFile = ref(null)
 const newImagePreviewUrl = ref('')
 const prefilledFromLookup = ref(false)
-// Open Food Facts's own image for this barcode (issue #58) - a manually
-// picked photo (newImageFile) always takes priority over this if the user
-// chooses one, and this can be dismissed on its own without touching the
-// manual picker.
 const offImageUrl = ref('')
 const offImageRejected = ref(false)
 
