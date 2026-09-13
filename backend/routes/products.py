@@ -1,3 +1,4 @@
+import io
 import json
 import os
 import urllib.error
@@ -19,8 +20,17 @@ BARCODE_MAX_LENGTH = 64
 NAME_MAX_LENGTH = 200
 CATEGORY_MAX_LENGTH = 100
 
-OFF_LOOKUP_URL = "https://world.openfoodfacts.org/api/v2/product/{barcode}.json?fields=product_name,categories_tags"
+OFF_LOOKUP_URL = (
+    "https://world.openfoodfacts.org/api/v2/product/{barcode}.json"
+    "?fields=product_name,categories_tags,image_front_url,image_url"
+)
 OFF_LOOKUP_TIMEOUT_SECONDS = 3
+
+# set_product_image_from_url takes a URL back from the client - this
+# allowlist is what stops that from being an SSRF vector.
+OFF_IMAGE_HOSTS = {"images.openfoodfacts.org", "static.openfoodfacts.org"}
+OFF_IMAGE_DOWNLOAD_TIMEOUT_SECONDS = 5
+OFF_IMAGE_MAX_BYTES = 10 * 1024 * 1024
 
 
 @products_bp.get("")
@@ -107,11 +117,17 @@ def lookup_product(barcode):
     if categories:
         category = categories[-1].split(":")[-1].replace("-", " ").title()
 
+    # Just the URL, not the bytes - there's no product id yet to store an
+    # image against, so the frontend previews this directly and the
+    # server fetches it later once the product is actually created.
+    image_url = product.get("image_front_url") or product.get("image_url") or None
+
     return jsonify(
         {
             "available": True,
             "name": name[:NAME_MAX_LENGTH],
             "category": category[:CATEGORY_MAX_LENGTH] if category else None,
+            "image_url": image_url,
         }
     )
 
@@ -132,7 +148,41 @@ def upload_product_image(product_id):
         return jsonify({"error": "image file is required"}), 400
 
     try:
-        image_path = product_images.save(current_app.config["IMAGE_DIR"], product_id, file)
+        image_path = product_images.save(current_app.config["IMAGE_DIR"], product_id, file.stream)
+    except ValueError:
+        return jsonify({"error": "not a valid image"}), 400
+
+    product = products_repo.update(conn, product_id, image_path=image_path)
+    return jsonify(product)
+
+
+@products_bp.post("/<int:product_id>/image-from-url")
+@limiter.limit("20/minute")
+@require_session
+def set_product_image_from_url(product_id):
+    """Fetches and stores the image URL offered by /lookup, now that a
+    product id exists to store it against (see OFF_IMAGE_HOSTS)."""
+    conn = get_db(current_app.config["DATABASE_PATH"])
+    if products_repo.get_by_id(conn, product_id) is None:
+        return jsonify({"error": "not found"}), 404
+
+    data = request.get_json(force=True)
+    url = (data.get("url") or "").strip()
+    host = urllib.parse.urlparse(url).hostname
+    if host not in OFF_IMAGE_HOSTS:
+        return jsonify({"error": "url must be an Open Food Facts image"}), 400
+
+    try:
+        with urllib.request.urlopen(url, timeout=OFF_IMAGE_DOWNLOAD_TIMEOUT_SECONDS) as response:
+            content = response.read(OFF_IMAGE_MAX_BYTES + 1)
+    except (urllib.error.URLError, TimeoutError, OSError):
+        return jsonify({"error": "could not download image"}), 400
+
+    if len(content) > OFF_IMAGE_MAX_BYTES:
+        return jsonify({"error": "image too large"}), 400
+
+    try:
+        image_path = product_images.save(current_app.config["IMAGE_DIR"], product_id, io.BytesIO(content))
     except ValueError:
         return jsonify({"error": "not a valid image"}), 400
 

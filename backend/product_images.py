@@ -16,13 +16,13 @@ MAX_DIMENSION = 1000
 QUALITY = 65
 
 
-def save(image_dir, product_id, file):
-    """Resizes an uploaded photo to a small thumbnail and stores it as
-    WebP keyed by product id (not barcode - see repositories/products.py).
-    Returns the path written. Raises ValueError if the upload isn't a
-    real image."""
+def save(image_dir, product_id, stream):
+    """Resizes a photo from any readable binary stream to a small
+    thumbnail and stores it as WebP keyed by product id (not barcode -
+    see repositories/products.py). Returns the path written. Raises
+    ValueError if it isn't a real image."""
     try:
-        image = Image.open(file.stream)
+        image = Image.open(stream)
         image.load()
     except (UnidentifiedImageError, OSError, ValueError):
         raise ValueError("not a valid image")
