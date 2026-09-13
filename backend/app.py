@@ -3,6 +3,7 @@ import os
 from flask import Flask, Response, abort, send_from_directory
 from flask_cors import CORS
 
+import settings_store
 from db import close_db, init_db
 from events import subscribe
 from extensions import limiter
@@ -14,6 +15,8 @@ from routes.products import products_bp
 DB_PATH = os.environ.get("DATABASE_PATH", os.path.join(os.path.dirname(__file__), "shopping.db"))
 STATIC_DIR = os.environ.get("STATIC_DIR", os.path.join(os.path.dirname(__file__), "static"))
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
+# Defaults to sitting next to the database, so it lands on the same persistent volume without needing its own env var to remember to set.
+SETTINGS_PATH = os.environ.get("SETTINGS_PATH", os.path.join(os.path.dirname(DB_PATH), "settings.json"))
 
 
 def create_app():
@@ -34,6 +37,8 @@ def create_app():
     limiter.init_app(app)
 
     init_db(DB_PATH)
+    # Off by default: Has to be something an admin turns on from /admin
+    settings_store.init(SETTINGS_PATH, defaults={"off_lookup_enabled": False})
     app.teardown_appcontext(close_db)
 
     app.register_blueprint(admin_bp)

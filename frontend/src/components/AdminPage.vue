@@ -14,6 +14,8 @@ const busy = ref(false)
 const profiles = ref([])
 const products = ref([])
 const lists = ref([])
+const settings = ref({ off_lookup_enabled: false })
+const settingsSaving = ref(false)
 
 function adminFetch(path, options = {}) {
   return fetch(apiUrl(path), {
@@ -23,14 +25,31 @@ function adminFetch(path, options = {}) {
 }
 
 async function loadAll() {
-  const [profilesRes, productsRes, listsRes] = await Promise.all([
+  const [profilesRes, productsRes, listsRes, settingsRes] = await Promise.all([
     adminFetch('/api/admin/profiles'),
     adminFetch('/api/admin/products'),
     adminFetch('/api/admin/lists'),
+    adminFetch('/api/admin/settings'),
   ])
   profiles.value = await profilesRes.json()
   products.value = await productsRes.json()
   lists.value = await listsRes.json()
+  settings.value = await settingsRes.json()
+}
+
+async function toggleOffLookup() {
+  settingsSaving.value = true
+  try {
+    const res = await adminFetch('/api/admin/settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ off_lookup_enabled: !settings.value.off_lookup_enabled }),
+    })
+    if (res.ok) settings.value = await res.json()
+    else window.alert('Could not update setting')
+  } finally {
+    settingsSaving.value = false
+  }
 }
 
 async function login() {
@@ -143,6 +162,24 @@ async function deleteProduct(product) {
     </div>
 
     <template v-else>
+      <section class="card">
+        <h2>Settings</h2>
+        <label class="toggle-row">
+          <input
+            type="checkbox"
+            :checked="settings.off_lookup_enabled"
+            :disabled="settingsSaving"
+            @change="toggleOffLookup"
+          />
+          <span>
+            <strong>Open Food Facts lookup</strong>
+            <span class="hint">
+              Auto-fill name/category for unknown barcodes via a live external lookup.
+            </span>
+          </span>
+        </label>
+      </section>
+
       <section class="card">
         <h2>Profiles</h2>
         <table>
@@ -359,9 +396,30 @@ th, td {
   color: var(--danger);
 }
 
-.hint.error {
-  color: var(--danger);
+.hint {
+  color: var(--text-muted);
   margin: 0;
   font-size: 0.85rem;
+}
+
+.hint.error {
+  color: var(--danger);
+}
+
+.toggle-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.toggle-row input {
+  margin-top: 3px;
+}
+
+.toggle-row span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 </style>

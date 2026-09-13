@@ -237,7 +237,7 @@ internet-exposed via reverse proxy — this is what the *app* must own:
 |---|---|
 | v1 | Scanning (Capacitor), shared product DB, single shared list, category sorting/grouping, Flask+SQLite backend, Docker Compose deploy, baseline hardening (IP rate limit, CORS, input validation, env secrets) |
 | v2 | Private per-user lists (superseded by multi-list + join codes), profiles, PIN + session tokens |
-| v3 | HA push-only + two-way integration, product thumbnail images, optional live product lookup via Open Food Facts API |
+| v3 | Optional live product lookup via Open Food Facts API (name/category), product thumbnail images, auto-filling that image from the OFF lookup, HA push-only + two-way integration |
 | Later / optional | Per-profile rate limiting, offline scan queue + sync, k8s manifests/Helm chart, instance-wide passphrase as extra gate |
 
 ## 9. Git workflow
