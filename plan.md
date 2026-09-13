@@ -235,9 +235,9 @@ internet-exposed via reverse proxy — this is what the *app* must own:
 | Version | Scope |
 |---|---|
 | v1 | Scanning (Capacitor), shared product DB, single shared list, category sorting/grouping, Flask+SQLite backend, Docker Compose deploy, baseline hardening (IP rate limit, CORS, input validation, env secrets) |
-| v2 | Private per-user lists, profiles, PIN + session tokens, per-profile rate limiting |
+| v2 | Private per-user lists (superseded by multi-list + join codes), profiles, PIN + session tokens |
 | v3 | HA push-only integration, product thumbnail images |
-| Later / optional | Offline scan queue + sync, k8s manifests/Helm chart, two-way HA sync, instance-wide passphrase as extra gate |
+| Later / optional | Per-profile rate limiting, offline scan queue + sync, k8s manifests/Helm chart, two-way HA sync, instance-wide passphrase as extra gate |
 
 ## 9. Git workflow
 
