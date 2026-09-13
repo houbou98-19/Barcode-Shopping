@@ -7,9 +7,12 @@ import os
 
 from PIL import Image, UnidentifiedImageError
 
-# issue #33: "~100-128px, ~2-5KB" - long side capped at 128px, WebP quality
-# tuned to land in that size range for a typical product photo.
-MAX_DIMENSION = 128
+# Bumped past issue #33's original "~100-128px" suggestion after testing
+# on a real phone screen - a much bigger source resolution makes the
+# lightbox view (App.vue/ProductCard.vue) look sharp instead of blurry,
+# while WebP compression at this quality keeps a 1000-product catalog
+# nowhere near a size worth worrying about (see plan.md discussion).
+MAX_DIMENSION = 1000
 QUALITY = 65
 
 

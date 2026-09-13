@@ -11,6 +11,7 @@ const emit = defineEmits(['close', 'added'])
 
 const status = ref('idle') // idle | adding | added | error
 const imageFailed = ref(false)
+const imageExpanded = ref(false)
 const imageUrl = computed(() => apiUrl(`/api/products/${props.product.id}/image`))
 
 // This component instance is reused across products (a single v-if, not a
@@ -20,6 +21,7 @@ watch(
   () => props.product.id,
   () => {
     imageFailed.value = false
+    imageExpanded.value = false
   }
 )
 
@@ -71,6 +73,7 @@ async function addToList() {
         alt=""
         class="product-image"
         @error="imageFailed = true"
+        @click="imageExpanded = true"
       />
       <div v-else class="image-placeholder"></div>
 
@@ -103,6 +106,10 @@ async function addToList() {
           Add to list
         </template>
       </button>
+    </div>
+
+    <div v-if="imageExpanded" class="lightbox" @click="imageExpanded = false">
+      <img :src="imageUrl" alt="" class="lightbox-image" />
     </div>
   </div>
 </template>
@@ -170,6 +177,25 @@ async function addToList() {
 .product-image {
   object-fit: cover;
   border: 1px solid var(--border);
+  cursor: zoom-in;
+}
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 200;
+  cursor: zoom-out;
+}
+
+.lightbox-image {
+  max-width: min(80vw, 400px);
+  max-height: 80vh;
+  border-radius: 12px;
 }
 
 .detail-card h2 {
